@@ -1,0 +1,16 @@
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: django_job_platform_postgres
+    restart: always
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - django_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  django_postgres_data:

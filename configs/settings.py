@@ -9,20 +9,26 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 
+import environ
+
+env = environ.Env(
+    DEBUG=(bool, False)
+)
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure--8)8-*828etv7e15b58uou$(a-*eycua5-i_mu$w(sy&$^v@xq'
+SECRET_KEY = env.str("SECRET_KEY", 'django-insecure--8)8-*828etv7e15b58uou$(a-*eycua5-i_mu$w(sy&$^v@xq')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", True)
 
 ALLOWED_HOSTS = []
 
@@ -37,7 +43,9 @@ DEFAULT_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    "rest_framework"
+    "rest_framework",
+    "oauth2_provider",
+    'rolepermissions',
 ]
 
 SELF_APPS = [
@@ -48,6 +56,15 @@ SELF_APPS = [
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + THIRD_PARTY_APPS + SELF_APPS
+
+AUTH_USER_MODEL = 'users.User'
+ROLEPERMISSIONS_MODULE = 'apps.users.roles'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    )
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -83,8 +100,12 @@ WSGI_APPLICATION = 'configs.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env.str("DB_NAME", "job_platform_db"),
+        'USER': env.str("DB_USER", "postgres"),
+        'PASSWORD': env.str("DB_PASSWORD", "123456"),
+        'HOST': env.str("DB_HOST", "localhost"),
+        'PORT': env.int("DB_PORT", 5432)
     }
 }
 
@@ -121,3 +142,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+import cloudinary.api
+
+cloudinary.config(
+    cloud_name=env("CLOUD_NAME"),
+    api_key=env("CLOUD_API_KEY"),
+    api_secret=env("CLOUD_API_SECRET")
+)
+
+CLIENT_ID = env("CLIENT_ID")
+CLIENT_SECRET = env("CLIENT_SECRET")
