@@ -29,6 +29,36 @@ SECRET_KEY = env.str("SECRET_KEY", 'django-insecure--8)8-*828etv7e15b58uou$(a-*e
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", True)
+if DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {message}',
+                'style': '{',
+            },
+            'simple': {
+                'format': '[{asctime}] {message}',
+                'style': '{',
+                'datefmt': '%H:%M:%S',
+            },
+        },
+        'handlers': {
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+                'formatter': 'simple',
+            },
+        },
+        'loggers': {
+            'django.db.backends': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        },
+    }
 
 ALLOWED_HOSTS = []
 
@@ -45,7 +75,7 @@ DEFAULT_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "oauth2_provider",
-    'rolepermissions',
+    'drf_yasg',
 ]
 
 SELF_APPS = [
@@ -58,12 +88,37 @@ SELF_APPS = [
 INSTALLED_APPS = DEFAULT_APPS + THIRD_PARTY_APPS + SELF_APPS
 
 AUTH_USER_MODEL = 'users.User'
-ROLEPERMISSIONS_MODULE = 'apps.users.roles'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'apps.users.auth.CachedOAuth2Authentication',
     )
+}
+
+OAUTH2_PROVIDER = {
+    "ACCESS_TOKEN_EXPIRE_SECONDS": env.int("ACCESS_TOKEN_EXPIRE_SECONDS", 36000),
+    "REFRESH_TOKEN_EXPIRE_SECONDS": env.int("REFRESH_TOKEN_EXPIRE_SECONDS", 86400),
+    "ROTATE_REFRESH_TOKEN": True,
+    "SCOPES": {"read": "Read scope", "write": "Write scope"},
+}
+
+TOKEN_CACHING_SECONDS = env.int("TOKEN_CACHING_SECONDS", 600)
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env.str("REDIS_URL"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5,
+            "RETRY_ON_TIMEOUT": True,
+            "MAX_CONNECTIONS": 1000,
+            "CONNECTION_POOL_KWARGS": {"max_connections": 100},
+        },
+        "KEY_PREFIX": "job-platform",
+        "TIMEOUT": 300,
+    }
 }
 
 MIDDLEWARE = [
@@ -143,13 +198,17 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+import cloudinary
+import cloudinary.uploader
 import cloudinary.api
 
 cloudinary.config(
-    cloud_name=env("CLOUD_NAME"),
-    api_key=env("CLOUD_API_KEY"),
-    api_secret=env("CLOUD_API_SECRET")
+    cloud_name=env('CLOUD_NAME'),
+    api_key=env('CLOUD_API_KEY'),
+    api_secret=env('CLOUD_API_SECRET')
 )
 
-CLIENT_ID = env("CLIENT_ID")
-CLIENT_SECRET = env("CLIENT_SECRET")
+CLIENT_ID = env.str("CLIENT_ID")
+CLIENT_SECRET = env.str("CLIENT_SECRET")

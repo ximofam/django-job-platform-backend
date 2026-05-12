@@ -18,7 +18,7 @@ class SoftDeleteManager(models.Manager):
         return SoftDeleteQuerySet(self.model, using=self._db).filter(deleted_at__isnull=True)
 
 
-class BaseModel(models.Model):
+class SoftDeleteModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
@@ -43,3 +43,11 @@ class BaseModel(models.Model):
     @property
     def is_deleted(self):
         return self.deleted_at is not None
+
+
+class BaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
