@@ -17,3 +17,6 @@ class Province(BaseModel):
     code = models.CharField(max_length=10, unique=True, null=False)
     codename = models.CharField(max_length=100, unique=True, null=False, default='vietnam')
     name = models.CharField(max_length=100, null=False)
+
+    class Meta:
+        ordering = ['codename']
