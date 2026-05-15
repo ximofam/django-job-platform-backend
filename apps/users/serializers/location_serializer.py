@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.users.models import Country, User
+from apps.users.models import Country, Province
 
 
 class CountrySerializer(serializers.ModelSerializer):
@@ -8,7 +8,7 @@ class CountrySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Country
-        fields = ['id', 'code', 'name', 'image']
+        exclude = ['created_at', 'updated_at']
 
     @staticmethod
     def get_image(obj):
@@ -17,7 +17,7 @@ class CountrySerializer(serializers.ModelSerializer):
         return None
 
 
-class UserDetailSerializer(serializers.ModelSerializer):
+class ProvinceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = '__all__'
+        model = Province
+        exclude = ['created_at', 'updated_at']
