@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+from common.views import ImageUploadAPIView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
@@ -25,5 +27,8 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
+    path('api/upload-image/', ImageUploadAPIView.as_view(), name='upload-image'),
+    path('', include('apps.locations.urls')),
     path('', include('apps.users.urls')),
+    path('', include('apps.jobs.urls')),
 ]

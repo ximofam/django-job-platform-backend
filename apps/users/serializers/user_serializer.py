@@ -1,8 +1,9 @@
 from django.db import transaction
 from rest_framework import serializers
 
-from apps.users.models import User, CandidateProfile, Company, EmployerProfile, Education, Experience
-from .company_serializer import CompanySerializer, CountrySerializer
+from apps.users.models import User, CandidateProfile, Company, EmployerProfile, Education, Experience, CompanyLocation
+from .company_serializer import CompanySerializer, CountrySerializer, CompanyLocationSerializer
+from ...locations.models import Address
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -35,12 +36,21 @@ class EmployerCreateSerializer(UserCreateSerializer):
     @transaction.atomic
     def create(self, validated_data):
         company_data = validated_data.pop('company')
+        company = None
+
         if company_data:
-            location_data = company_data.pop('location', None)
+            locations_data = company_data.pop('new_locations', [])
             company = Company.objects.create(**company_data)
-            if location_data:
-                company.locations.create(**location_data)
-                
+
+            for location_data in locations_data:
+                district = location_data.pop('district')
+                address = Address.objects.create(
+                    street_address=location_data.pop('address_street'),
+                    district=district,
+                    city=district.city,
+                )
+                CompanyLocation.objects.create(address=address, company=company, **location_data)
+
         password = validated_data.pop('password')
         user = User(**validated_data)
         user.set_password(password)
@@ -48,7 +58,6 @@ class EmployerCreateSerializer(UserCreateSerializer):
         user.save()
 
         EmployerProfile.objects.create(user=user, company=company)
-
         return user
 
 
@@ -110,7 +119,6 @@ class EmployerProfileSerializer(serializers.ModelSerializer):
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
-    avatar = serializers.SerializerMethodField(read_only=True)
     country = CountrySerializer(read_only=True)
 
     class Meta:
@@ -119,13 +127,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
                   'profile',
                   'country']
 
-    def get_avatar(self, obj):
-        if obj.avatar:
-            return obj.avatar.url
-        return None
-
     def to_representation(self, instance):
         response = super().to_representation(instance)
+        response['avatar'] = instance.avatar.url if instance.avatar else None
+
         request = self.context.get('request')
         is_owner = request and request.user == instance
 
@@ -155,4 +160,23 @@ class UserDetailSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'gender', 'date_of_birth', 'address', 'country', 'avatar']
+        fields = ['first_name', 'last_name', 'gender', 'date_of_birth', 'address', 'country']
+
+
+class UserUploadImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['avatar']
+        extra_kwargs = {
+            'avatar': {'required': True}
+        }
+
+    def to_representation(self, instance):
+        return {
+            "avatar": instance.avatar.url if instance.avatar else None
+        }
+
+    def update(self, instance, validated_data):
+        instance.avatar = validated_data['avatar']
+        instance.save(update_fields=['avatar'])
+        return instance

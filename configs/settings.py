@@ -29,16 +29,43 @@ SECRET_KEY = env.str("SECRET_KEY", 'django-insecure--8)8-*828etv7e15b58uou$(a-*e
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", True)
+
+import logging
+import re
+
+
+class TimeOnlyColorFormatter(logging.Formatter):
+    GREEN = '\033[92m'
+    RESET = '\033[0m'
+
+    def format(self, record):
+        log_message = super().format(record)
+        log_message = re.sub(
+            r'(\[\d{2}:\d{2}:\d{2}\])',
+            f'{self.GREEN}\\1{self.RESET}',
+            log_message
+        )
+        log_message = re.sub(
+            r'(\(\d+\.\d+\))',
+            f'{self.GREEN}\\1{self.RESET}',
+            log_message
+        )
+
+        return log_message
+
+
 if DEBUG:
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
         'formatters': {
-            'verbose': {
-                'format': '{levelname} {asctime} {module} {message}',
-                'style': '{',
-            },
             'simple': {
+                'format': '[{asctime}] {message}',
+                'style': '{',
+                'datefmt': '%H:%M:%S',
+            },
+            'time_color_format': {
+                '()': TimeOnlyColorFormatter,
                 'format': '[{asctime}] {message}',
                 'style': '{',
                 'datefmt': '%H:%M:%S',
@@ -50,10 +77,15 @@ if DEBUG:
                 'class': 'logging.StreamHandler',
                 'formatter': 'simple',
             },
+            'console_sql': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+                'formatter': 'time_color_format',
+            },
         },
         'loggers': {
             'django.db.backends': {
-                'handlers': ['console'],
+                'handlers': ['console_sql'],
                 'level': 'DEBUG',
                 'propagate': False,
             },
@@ -83,7 +115,8 @@ SELF_APPS = [
     'apps.users',
     'apps.jobs',
     'apps.payments',
-    'apps.applications'
+    'apps.applications',
+    'apps.locations'
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + THIRD_PARTY_APPS + SELF_APPS

@@ -1,7 +1,8 @@
 from autoslug import AutoSlugField
 from cloudinary.models import CloudinaryField
 
-from apps.users.models import User, Country, Province
+from apps.locations.models import Country, Address
+from apps.users.models import User
 from common.models import BaseModel
 from django.db import models
 
@@ -44,7 +45,7 @@ class Company(BaseModel):
         ENTERPRISE = 'ENTERPRISE', '1000+'
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
-    logo = CloudinaryField("logo", folder="companies/logo/", null=True, blank=True)
+    logo = CloudinaryField(null=True, blank=True)
     name = models.CharField(max_length=150, verbose_name='Tên công ty')
     slug = AutoSlugField(populate_from="name", unique=True, slugify=slugify, always_update=False)
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.OTHER)
@@ -58,6 +59,14 @@ class Company(BaseModel):
 
 
 class CompanyLocation(BaseModel):
+    class Label(models.TextChoices):
+        HEADQUARTERS = "HEADQUARTERS", "Trụ sở chính",
+        BRANCH = "BRANCH", "Chi nhánh",
+
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="locations")
-    province = models.ForeignKey(Province, on_delete=models.PROTECT)
-    address = models.CharField(max_length=255, blank=True)
+    address = models.ForeignKey('locations.Address', on_delete=models.PROTECT)
+    label = models.CharField(max_length=50, choices=Label.choices, default=Label.BRANCH)
+    is_primary = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('company', 'address')

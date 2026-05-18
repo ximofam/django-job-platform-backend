@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 
 from .models import (
-    Country, User, CandidateProfile, EmployerProfile,
+    User, CandidateProfile, EmployerProfile,
     Company, Experience, Education
 )
 
@@ -37,21 +37,6 @@ class EmployerProfileInline(admin.StackedInline):
     verbose_name_plural = 'Hồ sơ nhà tuyển dụng'
     fields = ('status', 'company', 'approved_by', 'approved_at')
     readonly_fields = ('approved_at',)
-
-
-@admin.register(Country)
-class CountryAdmin(admin.ModelAdmin):
-    list_display = ('code', 'name', 'flag_preview', 'created_at')
-    search_fields = ('code', 'name')
-    ordering = ('code',)
-    readonly_fields = ('flag_preview',)
-
-    def flag_preview(self, obj):
-        if obj.image:
-            return format_html('<img src="{}" height="24" />', obj.image.url)
-        return '—'
-
-    flag_preview.short_description = 'Flag'
 
 
 @admin.register(User)

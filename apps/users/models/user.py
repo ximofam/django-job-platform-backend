@@ -2,7 +2,7 @@ from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models, transaction
 
-from apps.users.models import Country
+from apps.locations.models import Country
 
 
 class User(AbstractUser):
