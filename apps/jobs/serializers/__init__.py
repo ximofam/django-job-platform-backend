@@ -1,6 +1,6 @@
 from .category_serializer import CategorySerializer
-from .job_serializer import JobSimpleSerializer, JobDetailsSerializer, JobCreateSerializer
+from .job_serializer import JobSimpleSerializer, JobDetailsSerializer, JobWriteSerializer
 
 __all__ = [
-    'CategorySerializer', 'JobSimpleSerializer', 'JobDetailsSerializer', 'JobCreateSerializer'
+    'CategorySerializer', 'JobSimpleSerializer', 'JobDetailsSerializer', 'JobWriteSerializer'
 ]

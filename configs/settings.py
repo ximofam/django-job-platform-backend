@@ -109,7 +109,7 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "oauth2_provider",
     'drf_spectacular',
-    'corsheaders'
+    'corsheaders',
 ]
 
 SELF_APPS = [
@@ -262,3 +262,8 @@ JOB_EXPIRE_DAYS = env.int("JOB_EXPIRE_DAYS", 10)
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+CELERY_BROKER_URL = env.str("CELERY_BROKER_URL")
+CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND")
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'

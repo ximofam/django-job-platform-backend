@@ -74,11 +74,13 @@ class Job(SoftDeleteModel):
     salary_max = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     salary_currency = models.CharField(max_length=10, default='VND')
 
+    published_at = models.DateTimeField(null=True, blank=True)
     expired_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         indexes = [
             GinIndex(fields=['search_vector']),
+            GinIndex(fields=['title'], name='job_title_trgm_idx', opclasses=['gin_trgm_ops']),
         ]
 
 # class JobView(BaseModel):

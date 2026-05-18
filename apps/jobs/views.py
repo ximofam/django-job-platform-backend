@@ -1,16 +1,19 @@
 from datetime import timedelta
 
 from django.conf import settings
+from rest_framework import filters as drf_filters
+from django.db.models import Q
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from apps.jobs import perms as job_perms
+from apps.jobs.filters import JobFilter, JobSearchFilter, JobOrderingFilter
 from apps.jobs.models import Category, Job
-from apps.jobs.search import PostgresFullTextSearchFilter
-from apps.jobs.serializers import CategorySerializer, JobDetailsSerializer, JobSimpleSerializer, JobCreateSerializer
+from apps.jobs.serializers import CategorySerializer, JobDetailsSerializer, JobSimpleSerializer, JobWriteSerializer
 from common import perms as common_perms
 
 
@@ -20,29 +23,47 @@ class CategoryTreeAPIView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
 
-class JobViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView, generics.CreateAPIView):
-    queryset = Job.objects.all()
+class JobViewSet(viewsets.ModelViewSet):
+    queryset = Job.objects.select_related('company', 'category', 'address').all()
     serializer_class = JobDetailsSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [PostgresFullTextSearchFilter]
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    filter_backends = [JobSearchFilter, DjangoFilterBackend, JobOrderingFilter]
+    filterset_class = JobFilter
+    ordering_fields = ['salary_min', 'salary_max', 'expired_at', 'created_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        if self.action == 'list':
+            return queryset.filter(status=Job.Status.PUBLISHED)
+
+        if self.action == 'retrieve':
+            user = self.request.user
+            if user.is_authenticated and hasattr(user, 'employer_profile'):
+                return queryset.filter(
+                    Q(status=Job.Status.PUBLISHED) |
+                    Q(company=user.employer_profile.company)
+                )
+            return queryset.filter(status=Job.Status.PUBLISHED)
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return JobDetailsSerializer
-
         if self.action == 'list':
             return JobSimpleSerializer
-
-        if self.action == 'create':
-            return JobCreateSerializer
-
+        if self.action in ['create', 'update', 'partial_update']:
+            return JobWriteSerializer
         return super().get_serializer_class()
 
     def get_permissions(self):
         res = super().get_permissions()
 
         if self.action == 'create':
-            return res + [common_perms.IsEmployer()]
+            return res + [job_perms.CanPostJob()]
 
         if self.action in ['job_publish', 'update', 'partial_update', 'destroy']:
             return res + [common_perms.IsEmployer(), job_perms.IsJobOwner()]
@@ -56,12 +77,6 @@ class JobViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIVie
     @action(methods=['POST'], detail=True, url_path='publish')
     def job_publish(self, request, pk=None):
         job = self.get_object()
-
-        if job.company != request.user.employer_profile.company:
-            return Response(
-                {'detail': 'Bạn không có quyền publish job này.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
 
         if job.status != Job.Status.DRAFT:
             return Response(

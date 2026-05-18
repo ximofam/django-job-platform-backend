@@ -9,3 +9,12 @@ class IsJobOwner(BasePermission):
             return obj.company == request.user.employer_profile.company
         except AttributeError:
             return False
+
+
+class CanPostJob(BasePermission):
+    message = "Bạn không phải employer hoặc account employer của bạn chưa được duyệt"
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        return user and user.is_employer and user.has_perm("jobs.add_job")

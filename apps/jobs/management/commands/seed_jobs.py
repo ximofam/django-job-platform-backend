@@ -353,6 +353,19 @@ class Command(BaseCommand):
 
                 job_data["category_name"] = category_name
 
+        from django.contrib.postgres.search import SearchVector
+        from django.db.models import Value
+
+        for job in Job.objects.filter(company__tax_code__in=JOBS_DATA.keys()):
+            Job.objects.filter(pk=job.pk).update(
+                search_vector=(
+                        SearchVector(Value(job.title), weight='A', config='simple') +
+                        SearchVector(Value(job.company.name), weight='A', config='simple') +
+                        SearchVector(Value(job.description or ""), weight='B', config='simple') +
+                        SearchVector(Value(job.requirements or ""), weight='C', config='simple')
+                )
+            )
+
         self.stdout.write("\n" + "=" * 50)
         self.stdout.write(self.style.SUCCESS(
             f"Hoàn tất! Tạo mới: {total_created} job(s). Bỏ qua: {total_skipped} job(s)."

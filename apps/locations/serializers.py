@@ -26,3 +26,12 @@ class DistrictSerializer(serializers.ModelSerializer):
     class Meta:
         model = District
         fields = ['id', 'code', 'name']
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['id', 'street_address', 'city', 'district']
+        extra_kwargs = {
+            'id': {'read_only': True}
+        }
