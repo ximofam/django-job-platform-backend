@@ -1,15 +1,16 @@
 from django.db.models import Prefetch
 from drf_spectacular.utils import extend_schema
-from rest_framework import viewsets, generics, permissions, status, serializers
+from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from apps.users.models import User, Company, CompanyLocation
-from apps.users.perms import IsCandidate, IsCompanyOwner
+from apps.users.perms import IsCompanyOwner
+from common import perms as common_perms
 from apps.users.serializers import UserCreateSerializer, EmployerCreateSerializer, \
     UserUpdateSerializer, UserDetailSerializer, EducationSerializer, ExperienceSerializer, CompanySerializer, \
-    CompanyLocationSerializer, UserUploadImageSerializer, CompanyUploadImageSerializer
+    CompanyLocationSerializer, UserUploadImageSerializer, CompanyUploadImageSerializer, CompanySimpleSerializer
 
 
 class CandidateRegisterView(generics.CreateAPIView):
@@ -50,7 +51,7 @@ class UserViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         if self.action in ['current_user', 'upload_my_avatar']:
             return [permissions.IsAuthenticated()]
         if self.action in ['add_my_education', 'add_my_experience']:
-            return [IsCandidate()]
+            return [common_perms.IsCandidate()]
         return super().get_permissions()
 
     @extend_schema(methods=['PATCH'], request=UserUpdateSerializer)
@@ -93,26 +94,37 @@ class UserViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
 
 class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
-    queryset = (Company.objects.filter(
-        status=Company.Status.APPROVED
-    ).select_related(
-        'country',
-    ).prefetch_related(
-        Prefetch(
-            'locations',
-            queryset=CompanyLocation.objects.select_related(
-                'address__district',
-                'address__city',
-            )
-        )
-    ))
+    queryset = Company.objects.all()
     serializer_class = CompanySerializer
     lookup_field = 'slug'
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter]
     search_fields = ['name', 'description']
 
+    def get_queryset(self):
+        base_qs = Company.objects.filter(status=Company.Status.APPROVED).select_related('country')
+
+        if self.action in ['retrieve', 'update', 'partial_update']:
+            return base_qs.prefetch_related(
+                Prefetch('locations', queryset=CompanyLocation.objects.select_related(
+                    'address__district',
+                    'address__city',
+                ))
+            )
+
+        return base_qs
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return CompanySerializer
+
+        if self.action == 'list':
+            return CompanySimpleSerializer
+
+        return super().get_serializer_class()
+
     def get_permissions(self):
-        res = [permissions.IsAuthenticatedOrReadOnly()]
+        res = super().get_permissions()
 
         if self.action in ['add_location', 'upload_logo']:
             return res + [IsCompanyOwner()]
@@ -120,8 +132,17 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAP
         return res
 
     @extend_schema(request=CompanyLocationSerializer)
-    @action(methods=['POST'], url_path='locations', detail=True)
-    def add_location(self, request, slug):
+    @action(methods=['POST', 'GET'], url_path='locations', detail=True)
+    def locations(self, request, slug):
+        if request.method == 'GET':
+            company = self.get_object()
+            locations = company.locations.select_related(
+                'address__district',
+                'address__city').all()
+
+            serializer = CompanyLocationSerializer(locations, many=True)
+            return Response(serializer.data)
+
         serializer = CompanyLocationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

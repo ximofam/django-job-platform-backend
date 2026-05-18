@@ -1,7 +1,7 @@
 from cloudinary.models import CloudinaryField
 from django.db import models
 
-from common.models import BaseModel
+from common.models import BaseModel, SoftDeleteModel
 
 
 class Country(BaseModel):
@@ -44,7 +44,7 @@ class District(BaseModel):
         return f"{self.name}, {self.city.name}"
 
 
-class Address(BaseModel):
+class Address(SoftDeleteModel):
     city = models.ForeignKey(City, on_delete=models.PROTECT, related_name="addresses", verbose_name="Thành phố")
     district = models.ForeignKey(District, on_delete=models.PROTECT, related_name="addresses",
                                  verbose_name="Quận/Huyện")

@@ -326,6 +326,8 @@ class Command(BaseCommand):
 
                 expired_at = timezone.now() + timedelta(days=job_data.pop("expired_at_days"))
                 category_name = job_data.pop("category_name")
+                company_location = company.locations.filter(is_primary=True).first() or company.locations.first()
+                address = company_location.address if company_location else None
 
                 job, created = Job.objects.get_or_create(
                     title=job_data["title"],
@@ -334,6 +336,7 @@ class Command(BaseCommand):
                         **{k: v for k, v in job_data.items()},
                         "category": category,
                         "expired_at": expired_at,
+                        "address": address
                     },
                 )
 

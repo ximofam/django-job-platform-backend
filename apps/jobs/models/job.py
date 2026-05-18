@@ -1,10 +1,9 @@
-from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 
-from apps.users.models import Company, User
-from common.models import BaseModel
+from apps.users.models import Company
+from common.models import BaseModel, SoftDeleteModel
 from django.core.exceptions import ValidationError
 
 
@@ -34,7 +33,7 @@ class Category(BaseModel):
         super().save(*args, **kwargs)
 
 
-class Job(BaseModel):
+class Job(SoftDeleteModel):
     class EmploymentType(models.TextChoices):
         FULL_TIME = 'FULL_TIME', 'Toàn thời gian'
         PART_TIME = 'PART_TIME', 'Bán thời gian'
@@ -42,7 +41,7 @@ class Job(BaseModel):
         FREELANCE = 'FREELANCE', 'Tự do'
         INTERNSHIP = 'INTERNSHIP', 'Thực tập'
 
-    class JobStatus(models.TextChoices):
+    class Status(models.TextChoices):
         DRAFT = 'DRAFT', 'Bản nháp'
         PUBLISHED = 'PUBLISHED', 'Đang hiển thị'
         EXPIRED = 'EXPIRED', 'Đã hết hạn'
@@ -62,7 +61,7 @@ class Job(BaseModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='jobs')
 
     employment_type = models.CharField(max_length=20, choices=EmploymentType.choices, default=EmploymentType.INTERNSHIP)
-    status = models.CharField(max_length=20, choices=JobStatus.choices, default=JobStatus.DRAFT)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     experience_level = models.CharField(max_length=20, choices=ExperienceLevel.choices, null=True)
 
     title = models.CharField(max_length=255, null=False, blank=False)

@@ -108,7 +108,8 @@ DEFAULT_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "oauth2_provider",
-    'drf_spectacular'
+    'drf_spectacular',
+    'corsheaders'
 ]
 
 SELF_APPS = [
@@ -128,7 +129,7 @@ REST_FRAMEWORK = {
         'apps.users.auth.CachedOAuth2Authentication',
         # 'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
     ),
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_SCHEMA_CLASS': 'common.utils.ModuleTagAutoSchema',
 }
 
 SPECTACULAR_SETTINGS = {
@@ -167,6 +168,7 @@ CACHES = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -255,3 +257,8 @@ cloudinary.config(
 
 CLIENT_ID = env.str("CLIENT_ID")
 CLIENT_SECRET = env.str("CLIENT_SECRET")
+
+JOB_EXPIRE_DAYS = env.int("JOB_EXPIRE_DAYS", 10)
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True

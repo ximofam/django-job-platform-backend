@@ -15,8 +15,7 @@ class Migration(migrations.Migration):
                         setweight(to_tsvector('simple', coalesce(NEW.title, '')), 'A') ||
                         setweight(to_tsvector('simple', coalesce(NEW.description, '')), 'B') ||
                         setweight(to_tsvector('simple', coalesce(NEW.requirements, '')), 'C') ||
-                        setweight(to_tsvector('simple', coalesce(NEW.benefit, '')), 'D') ||
-                        setweight(to_tsvector('simple', coalesce(NEW.address, '')), 'D');
+                        setweight(to_tsvector('simple', coalesce(NEW.benefit, '')), 'D');
                     RETURN NEW;
                 END;
                 $$ LANGUAGE plpgsql;

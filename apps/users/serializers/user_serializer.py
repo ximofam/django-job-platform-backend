@@ -123,13 +123,13 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'email', 'avatar', 'gender', 'date_of_birth', 'address',
+        fields = ['id', 'first_name', 'last_name', 'username', 'email', 'gender', 'date_of_birth', 'address',
                   'profile',
                   'country']
 
     def to_representation(self, instance):
         response = super().to_representation(instance)
-        response['avatar'] = instance.avatar.url if instance.avatar else None
+        response['avatar_url'] = instance.avatar.url if instance.avatar else None
 
         request = self.context.get('request')
         is_owner = request and request.user == instance

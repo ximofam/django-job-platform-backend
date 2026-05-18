@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.locations.models import Country, City, District
+from apps.locations.models import Country, City, District, Address
 
 
 class CountrySerializer(serializers.ModelSerializer):

@@ -42,7 +42,8 @@ class SoftDeleteManager(models.Manager):
 class SoftDeleteModel(BaseModel):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-    objects = SoftDeleteManager()  # override default manager
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     def delete(self, using=None, keep_parents=False):
         self.deleted_at = timezone.now()
@@ -57,3 +58,6 @@ class SoftDeleteModel(BaseModel):
 
     class Meta:
         abstract = True
+        indexes = [
+            models.Index(fields=['deleted_at'])
+        ]

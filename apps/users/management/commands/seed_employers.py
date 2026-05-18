@@ -16,21 +16,21 @@ COMPANIES_DATA = [
         "locations": [
             {
                 "city_name": "Thành phố Hà Nội",
-                "district_name": "Quận Cầu Giấy",
+                "district_name": "Cầu Giấy",
                 "street_address": "Tòa nhà FPT, 17 Duy Tân",
                 "label": CompanyLocation.Label.HEADQUARTERS,
                 "is_primary": True,
             },
             {
                 "city_name": "Thành phố Hồ Chí Minh",
-                "district_name": "Quận 7",
+                "district_name": "Thủ Đức",
                 "street_address": "Lô E2a-7, Đường D1, Khu Công nghệ cao",
                 "label": CompanyLocation.Label.BRANCH,
                 "is_primary": False,
             },
             {
                 "city_name": "Thành phố Đà Nẵng",
-                "district_name": "Quận Hải Châu",
+                "district_name": "Hải Châu",
                 "street_address": "Tòa nhà FPT Complex, 30 Trần Phú",
                 "label": CompanyLocation.Label.BRANCH,
                 "is_primary": False,
@@ -46,14 +46,14 @@ COMPANIES_DATA = [
         "locations": [
             {
                 "city_name": "Thành phố Hồ Chí Minh",
-                "district_name": "Quận 7",
+                "district_name": "Hiệp Bình",
                 "street_address": "Vạn Phúc City, 1 Đường số 8, Phường Hiệp Bình Phước",
                 "label": CompanyLocation.Label.HEADQUARTERS,
                 "is_primary": True,
             },
             {
                 "city_name": "Thành phố Hà Nội",
-                "district_name": "Quận Cầu Giấy",
+                "district_name": "Nam Từ Liêm",
                 "street_address": "Tầng 10, Toà nhà Viwaseen, 48 Tố Hữu",
                 "label": CompanyLocation.Label.BRANCH,
                 "is_primary": False,
@@ -69,7 +69,7 @@ COMPANIES_DATA = [
         "locations": [
             {
                 "city_name": "Thành phố Hồ Chí Minh",
-                "district_name": "Quận 1",
+                "district_name": "Tân Bình",
                 "street_address": "52 Út Tịch, Phường 4",
                 "label": CompanyLocation.Label.HEADQUARTERS,
                 "is_primary": True,
@@ -85,14 +85,14 @@ COMPANIES_DATA = [
         "locations": [
             {
                 "city_name": "Thành phố Hồ Chí Minh",
-                "district_name": "Quận 1",
+                "district_name": "Bến Thành",
                 "street_address": "Tầng 8, Tòa nhà Viet Dragon, 141 Nguyễn Huệ",
                 "label": CompanyLocation.Label.HEADQUARTERS,
                 "is_primary": True,
             },
             {
                 "city_name": "Thành phố Đà Nẵng",
-                "district_name": "Quận Hải Châu",
+                "district_name": "Hải Châu",
                 "street_address": "Tầng 7, Tòa nhà Indochina Riverside, 74 Bạch Đằng",
                 "label": CompanyLocation.Label.BRANCH,
                 "is_primary": False,
@@ -108,14 +108,14 @@ COMPANIES_DATA = [
         "locations": [
             {
                 "city_name": "Thành phố Hồ Chí Minh",
-                "district_name": "Quận 3",
+                "district_name": "Tân Bình",
                 "street_address": "Tầng 9, Tòa nhà E-Town 2, 364 Cộng Hòa",
                 "label": CompanyLocation.Label.HEADQUARTERS,
                 "is_primary": True,
             },
             {
                 "city_name": "Thành phố Hà Nội",
-                "district_name": "Quận Đống Đa",
+                "district_name": "Đống Đa",
                 "street_address": "Tầng 5, Tòa nhà Icon4, 243A Đê La Thành",
                 "label": CompanyLocation.Label.BRANCH,
                 "is_primary": False,
@@ -227,7 +227,7 @@ class Command(BaseCommand):
 
             # Seed locations cho company
             for loc_data in data.get("locations", []):
-                city = City.objects.filter(name=loc_data["city_name"]).first()
+                city = City.objects.filter(name__icontains=loc_data["city_name"]).first()
                 if not city:
                     self.stdout.write(self.style.WARNING(
                         f"City not found: {loc_data['city_name']} — skipping location"
@@ -236,7 +236,7 @@ class Command(BaseCommand):
 
                 district = District.objects.filter(
                     city=city,
-                    name=loc_data["district_name"],
+                    name__icontains=loc_data["district_name"],
                 ).first()
                 if not district:
                     self.stdout.write(self.style.WARNING(
