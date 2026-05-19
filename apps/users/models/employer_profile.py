@@ -1,4 +1,5 @@
 from autoslug import AutoSlugField
+from cloudinary_storage.storage import MediaCloudinaryStorage
 from django.db import models
 
 from apps.locations.models import Country
@@ -43,7 +44,7 @@ class Company(BaseModel):
         ENTERPRISE = 'ENTERPRISE', '1000+'
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
-    logo = models.ImageField(upload_to='companies/logos', null=True, blank=True)
+    logo = models.ImageField(upload_to='companies/logos', storage=MediaCloudinaryStorage(), null=True, blank=True)
     name = models.CharField(max_length=150, verbose_name='Tên công ty')
     slug = AutoSlugField(populate_from="name", unique=True, slugify=slugify, always_update=False)
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.OTHER)

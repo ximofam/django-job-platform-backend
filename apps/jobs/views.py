@@ -4,15 +4,16 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics, viewsets, permissions, status
+from rest_framework import generics, viewsets, permissions, status, parsers
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from apps.jobs import perms as job_perms
 from apps.jobs.filters import JobFilter, JobSearchFilter, JobOrderingFilter, JobCursorPagination
-from apps.jobs.models import Category, Job
+from apps.jobs.models import Category, Job, CandidateCV
 from apps.jobs.serializers import CategorySerializer, JobDetailsSerializer, JobSimpleSerializer, JobWriteSerializer
+from apps.jobs.serializers.application_serializer import CandidateCVSerializer
 from common import perms as common_perms
 
 
@@ -62,10 +63,9 @@ class JobViewSet(viewsets.ModelViewSet):
         res = super().get_permissions()
 
         if self.action == 'create':
-            return res + [job_perms.CanPostJob()]
-
-        if self.action in ['job_publish', 'update', 'partial_update', 'destroy']:
-            return res + [common_perms.IsEmployer(), job_perms.IsJobOwner()]
+            res += [job_perms.CanPostJob()]
+        elif self.action in ['job_publish', 'update', 'partial_update', 'destroy']:
+            res += [common_perms.IsEmployer(), job_perms.IsJobOwner()]
 
         return res
 
@@ -103,3 +103,28 @@ class JobViewSet(viewsets.ModelViewSet):
 
     def _publish_with_boost(self, request, job, boost_data):
         pass
+
+
+class CandidateCVViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = CandidateCV.objects.all()
+    serializer_class = CandidateCVSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        res = super().get_permissions()
+        if self.action in ['my_cvs', 'create']:
+            res += [common_perms.IsCandidate()]
+
+        return res
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(candidate_profile=user.candidate_profile)
+
+    @action(methods=['GET'], url_path='my-cvs', detail=False, parser_classes=[parsers.MultiPartParser])
+    def my_cvs(self, request):
+        user = request.user
+        cvs = CandidateCV.objects.filter(candidate_profile=user.candidate_profile)
+
+        serializer = self.get_serializer(cvs, many=True)
+        return Response(serializer.data)

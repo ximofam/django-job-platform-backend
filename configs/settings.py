@@ -118,7 +118,6 @@ SELF_APPS = [
     'apps.users',
     'apps.jobs',
     'apps.payments',
-    'apps.applications',
     'apps.locations'
 ]
 
@@ -248,13 +247,35 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': env('CLOUD_NAME'),
     'API_KEY': env('CLOUD_API_KEY'),
-    'API_SECRET': env('CLOUD_API_SECRET')
+    'API_SECRET': env('CLOUD_API_SECRET'),
+    'UNSIGNED_PRESET': None,
+    'ACCESS_MODE': 'public',
+    'MAGIC_FILE_PATH': 'magic',
+}
+
+SUPABASE_ACCESS_KEY = env.str("SUPABASE_ACCESS_KEY")
+SUPABASE_SECRET_KEY = env.str("SUPABASE_SECRET_KEY")
+SUPABASE_BUCKET = env.str("SUPABASE_BUCKET")
+SUPABASE_PROJECT_ID = env.str("SUPABASE_PROJECT_ID")
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = "public-read"
+
+SUPABASE_STORAGE = {
+    "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    "OPTIONS": {
+        "access_key": SUPABASE_ACCESS_KEY,
+        "secret_key": SUPABASE_SECRET_KEY,
+        "bucket_name": SUPABASE_BUCKET,
+        "endpoint_url": f"https://{SUPABASE_PROJECT_ID}.storage.supabase.co/storage/v1/s3",
+        "file_overwrite": AWS_S3_FILE_OVERWRITE,
+        "default_acl": AWS_DEFAULT_ACL,
+        "querystring_auth": False,
+        "custom_domain": f"{SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{SUPABASE_BUCKET}"
+    },
 }
 
 STORAGES = {
-    "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-    },
+    "default": SUPABASE_STORAGE,
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },

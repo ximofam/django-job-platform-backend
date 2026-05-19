@@ -1,3 +1,4 @@
+from cloudinary_storage.storage import MediaCloudinaryStorage
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models, transaction
 
@@ -16,7 +17,7 @@ class User(AbstractUser):
 
     email = models.EmailField(max_length=100, null=False, blank=False, unique=True)
     address = models.CharField(max_length=255, blank=True, null=True)
-    avatar = models.ImageField(upload_to='users/avatars/', null=True, blank=True)
+    avatar = models.ImageField(upload_to='users/avatars/', storage=MediaCloudinaryStorage(), null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=20, choices=Gender.choices)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.CANDIDATE)
