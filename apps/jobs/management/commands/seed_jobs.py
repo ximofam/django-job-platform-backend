@@ -324,7 +324,8 @@ class Command(BaseCommand):
                         f"Category '{job_data['category_name']}' không tồn tại. Job sẽ không có category."
                     ))
 
-                expired_at = timezone.now() + timedelta(days=job_data.pop("expired_at_days"))
+                now = timezone.now()
+                expired_at = now + timedelta(days=job_data.pop("expired_at_days"))
                 category_name = job_data.pop("category_name")
                 company_location = company.locations.filter(is_primary=True).first() or company.locations.first()
                 address = company_location.address if company_location else None
@@ -336,7 +337,8 @@ class Command(BaseCommand):
                         **{k: v for k, v in job_data.items()},
                         "category": category,
                         "expired_at": expired_at,
-                        "address": address
+                        "address": address,
+                        "published_at": now,
                     },
                 )
 
