@@ -1,4 +1,6 @@
 import django_filters
+from django.conf import settings
+from rest_framework.pagination import CursorPagination
 
 from .models import Job
 from django.contrib.postgres.search import (
@@ -38,6 +40,7 @@ class JobFilter(django_filters.FilterSet):
 
 
 SIMILARITY_THRESHOLD = 0.4
+MIN_FTS_RESULTS = 5
 
 
 class JobSearchFilter(filters.SearchFilter):
@@ -49,13 +52,27 @@ class JobSearchFilter(filters.SearchFilter):
             return queryset
 
         fts_query = SearchQuery(search_term, config='simple')
+        fts_queryset = self._build_fts_queryset(queryset, fts_query)
 
+        if fts_queryset[:MIN_FTS_RESULTS].count() >= MIN_FTS_RESULTS:
+            return fts_queryset
+
+        return self._build_fuzzy_queryset(queryset, search_term, fts_query)
+
+    def _build_fts_queryset(self, queryset, fts_query):
+        return (
+            queryset
+            .filter(search_vector=fts_query)
+            .annotate(score=SearchRank(F('search_vector'), fts_query))
+            .order_by('-score')
+        )
+
+    def _build_fuzzy_queryset(self, queryset, search_term, fts_query):
         return (
             queryset
             .annotate(
                 fts_rank=Case(
-                    When(search_vector=fts_query,
-                         then=SearchRank(F('search_vector'), fts_query)),
+                    When(search_vector=fts_query, then=SearchRank(F('search_vector'), fts_query)),
                     default=Value(0.0),
                     output_field=FloatField(),
                 ),
@@ -66,27 +83,32 @@ class JobSearchFilter(filters.SearchFilter):
                     output_field=FloatField(),
                 ),
             )
-            .filter(
-                Q(search_vector=fts_query) |
-                Q(fuzzy_rank__gte=SIMILARITY_THRESHOLD)
-            )
+            .filter(Q(search_vector=fts_query) | Q(fuzzy_rank__gte=SIMILARITY_THRESHOLD))
+            .order_by('-score')
         )
 
 
 class JobOrderingFilter(filters.OrderingFilter):
     def get_ordering(self, request, queryset, view):
-        ordering = super().get_ordering(request, queryset, view)
-
         search_term = request.query_params.get('search', '').strip()
+        user_ordering = super().get_ordering(request, queryset, view)
+        base_ordering = list(user_ordering) if user_ordering else []
+        seen_fields = {field.lstrip('-') for field in base_ordering}
 
-        has_explicit_ordering = self.ordering_param in request.query_params
+        if search_term and 'score' not in seen_fields:
+            base_ordering.append('-score')
 
-        if search_term:
-            if not has_explicit_ordering:
-                return ['-score']
-            else:
-                if ordering:
-                    return list(ordering) + ['-score']
-                return ['-score']
+        if 'published_at' not in seen_fields:
+            base_ordering.append('-published_at')
 
-        return ordering
+        if 'id' not in seen_fields:
+            base_ordering.append('-id')
+
+        return base_ordering
+
+
+class JobCursorPagination(CursorPagination):
+    page_size = settings.JOB_PAGE_SIZE
+    page_size_query_param = 'page_size'
+    max_page_size = settings.JOB_MAX_PAGE_SIZE
+    ordering = ('-published_at', '-id')

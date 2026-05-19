@@ -1,78 +1,46 @@
 from django.db import transaction
 from rest_framework import serializers
+from django.utils import timezone
 
 from apps.jobs.models import Job
 from apps.locations.models import Address
 from apps.locations.serializers import AddressSerializer
-from apps.users.serializers import CompanySimpleSerializer
+from apps.users.models import Company
+from apps.users.serializers import CompanySerializer
 
 
-class JobSimpleSerializer(serializers.ModelSerializer):
-    salary_range = serializers.SerializerMethodField()
+class CompanySimpleSerializer(serializers.ModelSerializer):
     logo_url = serializers.SerializerMethodField()
 
     class Meta:
-        model = Job
-        fields = ['id', 'title', 'description', 'salary_range']
-
-    def get_salary_range(self, obj) -> dict | None:
-        if obj.salary_min is None and obj.salary_max is None:
-            return None
-        return {
-            'min': obj.salary_min,
-            'max': obj.salary_max,
-            'currency': obj.salary_currency,
-            'display': self._format_salary(obj),
-        }
+        model = Company
+        fields = ['id', 'name', 'slug', 'logo_url']
+        read_only_fields = fields
 
     def get_logo_url(self, obj):
-        return obj.company.logo.url if obj.company.logo else None
-
-    def _format_salary(self, obj) -> str:
-        cur = obj.salary_currency
-        if obj.salary_min and obj.salary_max:
-            return f"{obj.salary_min:,.0f} - {obj.salary_max:,.0f} {cur}"
-        if obj.salary_min:
-            return f"Từ {obj.salary_min:,.0f} {cur}"
-        if obj.salary_max:
-            return f"Đến {obj.salary_max:,.0f} {cur}"
-        return "Thỏa thuận"
+        return obj.logo.url if obj.logo else None
 
 
-class JobDetailsSerializer(JobSimpleSerializer):
-    company = CompanySimpleSerializer(read_only=True)
-    address = serializers.SerializerMethodField()
-
-    employment_type_display = serializers.CharField(source='get_employment_type_display', read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    experience_level_display = serializers.CharField(source='get_experience_level_display', read_only=True)
-
-    is_expired = serializers.SerializerMethodField()
-    salary_range = serializers.SerializerMethodField()
+class JobBaseSerializer(serializers.ModelSerializer):
+    salary = serializers.SerializerMethodField()
+    company = CompanySimpleSerializer()
+    address = serializers.CharField(source='address.full_address')
 
     class Meta:
         model = Job
         fields = [
             'id',
-            'employment_type', 'employment_type_display',
-            'status', 'status_display',
-            'experience_level', 'experience_level_display',
-            'title', 'description', 'requirements', 'benefit',
-            'salary_min', 'salary_max', 'salary_currency', 'salary_range',
-            'is_expired', 'company', 'address',
+            'title',
+            'company',
+            'address',
+            'salary',
+            'published_at',
         ]
-        read_only_fields = fields
 
-    def get_address(self, obj) -> str:
-        return obj.address.full_address
-
-    def get_is_expired(self, obj) -> bool:
-        from django.utils import timezone
-        return bool(obj.expired_at and obj.expired_at < timezone.now())
-
-    def get_salary_range(self, obj) -> dict | None:
+    def get_salary(self, obj) -> dict | None:
         if obj.salary_min is None and obj.salary_max is None:
             return None
+
         return {
             'min': obj.salary_min,
             'max': obj.salary_max,
@@ -80,15 +48,54 @@ class JobDetailsSerializer(JobSimpleSerializer):
             'display': self._format_salary(obj),
         }
 
-    def _format_salary(self, obj) -> str:
-        cur = obj.salary_currency
-        if obj.salary_min and obj.salary_max:
-            return f"{obj.salary_min:,.0f} - {obj.salary_max:,.0f} {cur}"
-        if obj.salary_min:
-            return f"Từ {obj.salary_min:,.0f} {cur}"
-        if obj.salary_max:
-            return f"Đến {obj.salary_max:,.0f} {cur}"
+    @staticmethod
+    def _format_salary(obj) -> str:
+        currency = obj.salary_currency
+
+        if obj.salary_min is not None and obj.salary_max is not None:
+            return f"{obj.salary_min:,.0f} - {obj.salary_max:,.0f} {currency}"
+
+        if obj.salary_min is not None:
+            return f"Từ {obj.salary_min:,.0f} {currency}"
+
+        if obj.salary_max is not None:
+            return f"Đến {obj.salary_max:,.0f} {currency}"
+
         return "Thỏa thuận"
+
+
+class JobSimpleSerializer(JobBaseSerializer):
+    class Meta(JobBaseSerializer.Meta):
+        fields = JobBaseSerializer.Meta.fields
+
+
+class JobDetailsSerializer(JobBaseSerializer):
+    employment_type_display = serializers.CharField(source='get_employment_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    experience_level_display = serializers.CharField(source='get_experience_level_display', read_only=True)
+    is_expired = serializers.SerializerMethodField()
+    company = CompanySerializer()
+
+    class Meta(JobBaseSerializer.Meta):
+        fields = JobBaseSerializer.Meta.fields + [
+            'employment_type',
+            'employment_type_display',
+            'status',
+            'status_display',
+            'experience_level',
+            'experience_level_display',
+            'requirements',
+            'benefit',
+            'salary_min',
+            'salary_max',
+            'salary_currency',
+            'is_expired'
+        ]
+        read_only_fields = fields
+
+    @staticmethod
+    def get_is_expired(obj) -> bool:
+        return bool(obj.expired_at and obj.expired_at < timezone.now())
 
 
 class FlexibleAddressField(serializers.Field):

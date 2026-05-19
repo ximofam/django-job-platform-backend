@@ -110,6 +110,8 @@ THIRD_PARTY_APPS = [
     "oauth2_provider",
     'drf_spectacular',
     'corsheaders',
+    'cloudinary_storage',
+    'cloudinary'
 ]
 
 SELF_APPS = [
@@ -145,8 +147,6 @@ OAUTH2_PROVIDER = {
     "ROTATE_REFRESH_TOKEN": True,
     "SCOPES": {"read": "Read scope", "write": "Write scope"},
 }
-
-TOKEN_CACHING_SECONDS = env.int("TOKEN_CACHING_SECONDS", 600)
 
 CACHES = {
     "default": {
@@ -245,20 +245,29 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': env('CLOUD_NAME'),
+    'API_KEY': env('CLOUD_API_KEY'),
+    'API_SECRET': env('CLOUD_API_SECRET')
+}
 
-cloudinary.config(
-    cloud_name=env('CLOUD_NAME'),
-    api_key=env('CLOUD_API_KEY'),
-    api_secret=env('CLOUD_API_SECRET')
-)
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 CLIENT_ID = env.str("CLIENT_ID")
 CLIENT_SECRET = env.str("CLIENT_SECRET")
 
+TOKEN_CACHING_SECONDS = env.int("TOKEN_CACHING_SECONDS", 600)
+
 JOB_EXPIRE_DAYS = env.int("JOB_EXPIRE_DAYS", 10)
+JOB_PAGE_SIZE = env.int("JOB_PAGE_SIZE", 20)
+JOB_MAX_PAGE_SIZE = env.int("JOB_MAX_PAGE_SIZE", 100)
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True

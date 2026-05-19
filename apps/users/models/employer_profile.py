@@ -1,11 +1,9 @@
 from autoslug import AutoSlugField
-from cloudinary.models import CloudinaryField
-
-from apps.locations.models import Country, Address
-from apps.users.models import User
-from common.models import BaseModel
 from django.db import models
 
+from apps.locations.models import Country
+from apps.users.models import User
+from common.models import BaseModel
 from common.utils import slugify
 
 
@@ -45,7 +43,7 @@ class Company(BaseModel):
         ENTERPRISE = 'ENTERPRISE', '1000+'
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
-    logo = CloudinaryField(null=True, blank=True)
+    logo = models.ImageField(upload_to='companies/logos', null=True, blank=True)
     name = models.CharField(max_length=150, verbose_name='Tên công ty')
     slug = AutoSlugField(populate_from="name", unique=True, slugify=slugify, always_update=False)
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.OTHER)

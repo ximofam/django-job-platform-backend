@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from django.conf import settings
-from rest_framework import filters as drf_filters
 from django.db.models import Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -11,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from apps.jobs import perms as job_perms
-from apps.jobs.filters import JobFilter, JobSearchFilter, JobOrderingFilter
+from apps.jobs.filters import JobFilter, JobSearchFilter, JobOrderingFilter, JobCursorPagination
 from apps.jobs.models import Category, Job
 from apps.jobs.serializers import CategorySerializer, JobDetailsSerializer, JobSimpleSerializer, JobWriteSerializer
 from common import perms as common_perms
@@ -24,14 +23,14 @@ class CategoryTreeAPIView(generics.ListAPIView):
 
 
 class JobViewSet(viewsets.ModelViewSet):
-    queryset = Job.objects.select_related('company', 'category', 'address').all()
+    queryset = Job.objects.select_related('company', 'address__city', 'address__district', ).all()
     serializer_class = JobDetailsSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
     filter_backends = [JobSearchFilter, DjangoFilterBackend, JobOrderingFilter]
     filterset_class = JobFilter
-    ordering_fields = ['salary_min', 'salary_max', 'expired_at', 'created_at']
-    ordering = ['-created_at']
+    ordering_fields = ['salary_min', 'salary_max', 'published_at']
+    pagination_class = JobCursorPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
