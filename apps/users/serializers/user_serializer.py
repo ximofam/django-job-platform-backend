@@ -32,6 +32,9 @@ class EmployerCreateSerializer(UserCreateSerializer):
     class Meta:
         model = User
         fields = UserCreateSerializer.Meta.fields + ['company']
+        extra_kwargs = {
+            'password': {'write_only': True},
+        }
 
     @transaction.atomic
     def create(self, validated_data):
@@ -133,6 +136,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
         request = self.context.get('request')
         is_owner = request and request.user == instance
+        if is_owner:
+            response['role'] = instance.role
 
         profile_obj = instance.profile
 

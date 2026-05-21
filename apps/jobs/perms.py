@@ -18,3 +18,9 @@ class CanPostJob(BasePermission):
         user = request.user
 
         return user and user.is_employer and user.has_perm("jobs.add_job")
+
+
+class IsEmployerOrCandidate(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        return user.is_employer or user.is_candidate

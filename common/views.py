@@ -1,8 +1,32 @@
 import cloudinary.uploader
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status, permissions
+
+from rest_framework.views import APIView
+
+import json
+from django.http import QueryDict
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from oauth2_provider.views.base import TokenView
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CustomTokenView(TokenView):
+    def post(self, request, *args, **kwargs):
+        if request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body)
+                q_data = QueryDict('', mutable=True)
+                for key, value in data.items():
+                    q_data[key] = value
+
+                request.POST = q_data
+            except json.JSONDecodeError:
+                pass
+
+        return super().post(request, *args, **kwargs)
 
 
 class ImageUploadAPIView(APIView):

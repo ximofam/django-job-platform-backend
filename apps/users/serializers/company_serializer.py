@@ -35,40 +35,61 @@ class CompanyLocationSerializer(serializers.ModelSerializer):
         return CompanyLocation.objects.create(address=address, **validated_data)
 
 
-class CompanySimpleSerializer(serializers.ModelSerializer):
+class CompanyBaseSerializer(serializers.ModelSerializer):
     logo_url = serializers.SerializerMethodField(read_only=True)
     country = CountrySerializer(read_only=True)
 
     class Meta:
         model = Company
-        fields = ['id', 'name', 'slug', 'type', 'employee_size', 'logo_url', 'country']
+        fields = [
+            'id',
+            'slug',
+            'status',
+            'name',
+            'type',
+            'employee_size',
+            'description',
+            'tax_code',
+            'country',
+            'logo_url',
+        ]
+        read_only_fields = ['id', 'slug', 'status', 'logo_url']
 
     def get_logo_url(self, obj):
         return obj.logo.url if obj.logo else None
 
 
-class CompanySerializer(serializers.ModelSerializer):
+class CompanySimpleSerializer(CompanyBaseSerializer):
+    class Meta(CompanyBaseSerializer.Meta):
+        fields = [
+            'id',
+            'name',
+            'slug',
+            'type',
+            'employee_size',
+            'logo_url',
+            'country',
+        ]
+
+
+class CompanySerializer(CompanyBaseSerializer):
     locations = CompanyLocationSerializer(many=True, read_only=True)
     new_locations = CompanyLocationSerializer(many=True, write_only=True, required=True)
 
-    class Meta:
-        model = Company
-        fields = ['id', 'slug', 'status', 'type', 'employee_size', 'description', 'name', 'tax_code',
-                  'country',
-                  'new_locations', 'locations']
+    class Meta(CompanyBaseSerializer.Meta):
+        fields = CompanyBaseSerializer.Meta.fields + ['locations', 'new_locations']
+
+
+class CompanyUpdateSerializer(CompanyBaseSerializer):
+    class Meta(CompanyBaseSerializer.Meta):
         extra_kwargs = {
             'description': {'required': False},
-            'id': {'read_only': True},
-            'slug': {'read_only': True},
-            'country': {'required': True},
-            'status': {'read_only': True},
+            'country': {'required': False},
+            'name': {'required': False},
+            'type': {'required': False},
+            'employee_size': {'required': False},
+            'tax_code': {'read_only': True}
         }
-
-    def to_representation(self, instance):
-        response = super().to_representation(instance)
-        response['country'] = CountrySerializer(instance.country).data
-        response['logo_url'] = instance.logo.url if instance.logo else None
-        return response
 
 
 class CompanyUploadImageSerializer(serializers.ModelSerializer):

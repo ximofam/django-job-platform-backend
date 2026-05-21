@@ -134,6 +134,11 @@ class JobWriteSerializer(serializers.ModelSerializer):
             'id': {'read_only': True},
         }
 
+    def to_representation(self, instance):
+        return {
+            'id': instance.pk
+        }
+
     def validate(self, attrs):
         salary_min = attrs.get('salary_min')
         salary_max = attrs.get('salary_max')

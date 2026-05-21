@@ -7,12 +7,12 @@ from common.models import SoftDeleteModel, BaseModel
 
 class Application(SoftDeleteModel):
     class Status(models.TextChoices):
-        PENDING = "pending", _("Chờ xem xét")
-        REVIEWING = "reviewing", _("Đang xem xét")
-        INTERVIEW = "interview", _("Phỏng vấn")
-        ACCEPTED = "accepted", _("Chấp nhận")
-        REJECTED = "rejected", _("Từ chối")
-        WITHDRAWN = "withdrawn", _("Ứng viên rút hồ sơ")
+        PENDING = "PENDING", _("Chờ xem xét")
+        REVIEWING = "REVIEWING", _("Đang xem xét")
+        INTERVIEW = "INTERVIEW", _("Phỏng vấn")
+        ACCEPTED = "ACCEPTED", _("Chấp nhận")
+        REJECTED = "REJECTED", _("Từ chối")
+        WITHDRAWN = "WITHDRAWN", _("Ứng viên rút hồ sơ")
 
     candidate_profile = models.ForeignKey("users.CandidateProfile", on_delete=models.CASCADE,
                                           related_name="applications")

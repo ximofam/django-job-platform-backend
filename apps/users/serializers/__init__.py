@@ -2,11 +2,12 @@ from .user_serializer import UserDetailSerializer, EmployerProfileSerializer, Em
     EducationSerializer, ExperienceSerializer, UserCreateSerializer, CandidateProfileSerializer, UserUpdateSerializer, \
     UserUploadImageSerializer
 from .company_serializer import CompanySimpleSerializer, CompanySerializer, CompanyUploadImageSerializer, \
-    CompanyLocationSerializer
+    CompanyLocationSerializer, CompanyUpdateSerializer
 
 __all__ = [
     'UserCreateSerializer', 'EmployerCreateSerializer', 'EducationSerializer', 'ExperienceSerializer',
     'CandidateProfileSerializer', 'EmployerProfileSerializer', 'UserDetailSerializer', 'UserUpdateSerializer',
     'UserUploadImageSerializer',
-    'CompanyLocationSerializer', 'CompanySerializer', 'CompanyUploadImageSerializer', 'CompanySimpleSerializer'
+    'CompanyLocationSerializer', 'CompanySerializer', 'CompanyUploadImageSerializer', 'CompanySimpleSerializer',
+    'CompanyUpdateSerializer',
 ]

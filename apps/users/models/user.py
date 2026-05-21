@@ -56,3 +56,7 @@ class User(AbstractUser):
     @property
     def is_admin(self):
         return self.role == User.Role.ADMIN
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"

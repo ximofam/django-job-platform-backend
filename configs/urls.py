@@ -17,16 +17,22 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+import oauth2_provider.views as oauth2_views
 
-from common.views import ImageUploadAPIView
+from apps.jobs.admin import JobStatisticsView
+from common.views import ImageUploadAPIView, CustomTokenView
 
 urlpatterns = [
+    path('admin/job-stats/', JobStatisticsView.as_view(), name='admin_job_stats'),
     path('admin/', admin.site.urls),
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
+    path('api/auth/token/', CustomTokenView.as_view(), name='token'),
+    path('api/auth/revoke/', oauth2_views.RevokeTokenView.as_view(), name='revoke-token'),
+    path('api/auth/introspect/', oauth2_views.IntrospectTokenView.as_view(), name='introspect'),
     path('api/upload-image/', ImageUploadAPIView.as_view(), name='upload-image'),
     path('', include('apps.locations.urls')),
     path('', include('apps.users.urls')),

@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 import environ
+from django.urls import reverse_lazy
 
 env = environ.Env(
     DEBUG=(bool, False)
@@ -92,9 +93,8 @@ if DEBUG:
         },
     }
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
-# Application definition
 DEFAULT_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -111,7 +111,7 @@ THIRD_PARTY_APPS = [
     'drf_spectacular',
     'corsheaders',
     'cloudinary_storage',
-    'cloudinary'
+    'cloudinary',
 ]
 
 SELF_APPS = [
@@ -130,7 +130,7 @@ REST_FRAMEWORK = {
         'apps.users.auth.CachedOAuth2Authentication',
         # 'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
     ),
-    'DEFAULT_SCHEMA_CLASS': 'common.utils.ModuleTagAutoSchema',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SPECTACULAR_SETTINGS = {
@@ -180,7 +180,7 @@ ROOT_URLCONF = 'configs.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -243,6 +243,11 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTHENTICATION_BACKENDS = [
+    'common.backends.EmailOrUsernameModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': env('CLOUD_NAME'),

@@ -9,10 +9,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from apps.jobs import perms as job_perms
+from apps.jobs import perms as job_perms, perms
 from apps.jobs.filters import JobFilter, JobSearchFilter, JobOrderingFilter, JobCursorPagination
-from apps.jobs.models import Category, Job, CandidateCV
-from apps.jobs.serializers import CategorySerializer, JobDetailsSerializer, JobSimpleSerializer, JobWriteSerializer
+from apps.jobs.models import Category, Job, CandidateCV, Application
+from apps.jobs.serializers import CategorySerializer, JobDetailsSerializer, JobSimpleSerializer, JobWriteSerializer, \
+    ApplicationDetailsSerializer, ApplicationCreateSerializer, ApplicationSimpleSerializer
 from apps.jobs.serializers.application_serializer import CandidateCVSerializer
 from common import perms as common_perms
 
@@ -83,12 +84,12 @@ class JobViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        boost_package = request.data.get('boost')
+        package = request.data.get('package')
 
-        if boost_package:
-            return self._publish_with_boost(request, job, boost_package)
+        if package == "FREE":
+            return self._publish_free(job)
 
-        return self._publish_free(job)
+        return self._publish_with_boost(self, request, job)
 
     def _publish_free(self, job):
         expires_at = timezone.now() + timedelta(days=settings.JOB_EXPIRE_DAYS)
@@ -96,12 +97,9 @@ class JobViewSet(viewsets.ModelViewSet):
         job.expired_at = expires_at
         job.save(update_fields=['status', 'expired_at'])
 
-        return Response(
-            JobDetailsSerializer(job).data,
-            status=status.HTTP_200_OK
-        )
+        return Response({'id': job.pk}, status=status.HTTP_200_OK)
 
-    def _publish_with_boost(self, request, job, boost_data):
+    def _publish_with_boost(self, request, job):
         pass
 
 
@@ -121,10 +119,49 @@ class CandidateCVViewSet(viewsets.ViewSet, generics.CreateAPIView):
         user = self.request.user
         serializer.save(candidate_profile=user.candidate_profile)
 
-    @action(methods=['GET'], url_path='my-cvs', detail=False, parser_classes=[parsers.MultiPartParser])
+    @action(methods=['GET'], url_path='my', detail=False, parser_classes=[parsers.MultiPartParser])
     def my_cvs(self, request):
         user = request.user
         cvs = CandidateCV.objects.filter(candidate_profile=user.candidate_profile)
 
         serializer = self.get_serializer(cvs, many=True)
         return Response(serializer.data)
+
+
+class ApplicationViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView, generics.ListAPIView):
+    queryset = Application.objects.all()
+    permission_classes = [permissions.IsAuthenticated, perms.IsEmployerOrCandidate]
+    serializer_class = ApplicationDetailsSerializer
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return ApplicationCreateSerializer
+        elif self.action == 'list':
+            return ApplicationSimpleSerializer
+        elif self.action == 'retrieve':
+            return ApplicationDetailsSerializer
+
+        return super().get_serializer_class()
+
+    def get_permissions(self):
+        res = super().get_permissions()
+
+        if self.action == 'create':
+            res += [common_perms.IsCandidate()]
+
+        return res
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_employer:
+            return Application.objects.filter(
+                job__company_id=user.employer_profile.company_id
+            ).select_related('candidate_profile', 'candidate_profile__user', 'job', 'cv_file')
+
+        if user.is_candidate:
+            return Application.objects.filter(
+                candidate_profile=user.candidate_profile
+            ).select_related('job')
+
+        return Application.objects.none()

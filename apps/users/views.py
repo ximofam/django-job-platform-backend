@@ -1,6 +1,6 @@
 from django.db.models import Prefetch
 from drf_spectacular.utils import extend_schema
-from rest_framework import viewsets, generics, permissions, status
+from rest_framework import viewsets, generics, permissions, status, mixins
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny
@@ -10,7 +10,8 @@ from apps.users.perms import IsCompanyOwner
 from common import perms as common_perms
 from apps.users.serializers import UserCreateSerializer, EmployerCreateSerializer, \
     UserUpdateSerializer, UserDetailSerializer, EducationSerializer, ExperienceSerializer, CompanySerializer, \
-    CompanyLocationSerializer, UserUploadImageSerializer, CompanyUploadImageSerializer, CompanySimpleSerializer
+    CompanyLocationSerializer, UserUploadImageSerializer, CompanyUploadImageSerializer, CompanySimpleSerializer, \
+    CompanyUpdateSerializer
 
 
 class CandidateRegisterView(generics.CreateAPIView):
@@ -93,8 +94,8 @@ class UserViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
-    queryset = Company.objects.all()
+class CompanyViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView, generics.ListAPIView):
+    queryset = Company.objects.select_related('country').all()
     serializer_class = CompanySerializer
     lookup_field = 'slug'
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -104,7 +105,7 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAP
     def get_queryset(self):
         base_qs = Company.objects.filter(status=Company.Status.APPROVED).select_related('country')
 
-        if self.action in ['retrieve', 'update', 'partial_update']:
+        if self.action in ['retrieve']:
             return base_qs.prefetch_related(
                 Prefetch('locations', queryset=CompanyLocation.objects.select_related(
                     'address__district',
@@ -121,13 +122,16 @@ class CompanyViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAP
         if self.action == 'list':
             return CompanySimpleSerializer
 
+        if self.action in ['update', 'partial_update']:
+            return CompanyUpdateSerializer
+
         return super().get_serializer_class()
 
     def get_permissions(self):
         res = super().get_permissions()
 
-        if self.action in ['add_location', 'upload_logo']:
-            return res + [IsCompanyOwner()]
+        if self.action in ['add_location', 'upload_logo', 'update', 'partial_update']:
+            res += [IsCompanyOwner()]
 
         return res
 
