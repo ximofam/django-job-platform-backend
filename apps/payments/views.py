@@ -12,11 +12,8 @@ class PaymentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        serializer = PaymentCreateSerializer(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-
         handler = FulfillmentFactory.get(request.data['service_type'])
-        payment = handler.pre_fulfill(serializer)
+        payment = handler.pre_fulfill(request=request)
 
         service = PaymentServiceFactory.get(payment.method)
         result = service.process(payment)
@@ -42,8 +39,7 @@ class WebhookView(APIView):
             return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
 
         payment.status = result["status"]
-        payment.gateway_response = result["raw_response"]
-        payment.save(update_fields=["status", "gateway_response"])
+        payment.save(update_fields=["status"])
 
         if payment.status == PaymentStatus.COMPLETED:
             handler = FulfillmentFactory.get(payment.service_type)

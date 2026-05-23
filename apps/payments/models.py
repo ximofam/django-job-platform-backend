@@ -32,8 +32,7 @@ class Payment(SoftDeleteModel):
     method = models.CharField(max_length=20, choices=PaymentMethod.choices)
     status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
     gateway_ref = models.CharField(max_length=255, blank=True, help_text="Mã giao dịch từ cổng")
-    gateway_response = models.JSONField(default=dict, blank=True)
-    meta_data = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
     currency = models.CharField(max_length=3, default="VND")
 
     class Meta:

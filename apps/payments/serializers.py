@@ -8,23 +8,23 @@ from ..jobs.models import Job
 class PaymentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
-        fields = ['service_type', 'meta_data', 'method']
+        fields = ['service_type', 'metadata', 'method']
 
     def validate(self, attrs):
         service_type = attrs.get('service_type')
-        meta_data = attrs.get('meta_data', {})
+        metadata = attrs.get('metadata', {})
         request = self.context['request']
 
         if service_type == ServiceType.JOB_FEATURED:
             if not request.user.is_employer:
                 raise PermissionDenied("Bạn không có quyền đăng tin")
 
-            if 'job_id' not in meta_data:
+            if 'job_id' not in metadata:
                 raise serializers.ValidationError({
-                    "meta_data": "Bắt buộc phải truyền 'job_id' khi mua gói Tin nổi bật."
+                    "metadata": "Bắt buộc phải truyền 'job_id' khi mua gói Tin nổi bật."
                 })
 
-            job = Job.objects.select_related('company', 'company__employer_profile').get(pk=meta_data['job_id'])
+            job = Job.objects.select_related('company', 'company__employer_profile').get(pk=metadata['job_id'])
             if not job:
                 raise serializers.ValidationError({"job": "Job này không tồn tại"})
 

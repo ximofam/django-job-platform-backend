@@ -66,32 +66,25 @@ class StripePaymentService(PaymentService):
             "status": None,
             "transaction_id": None,
             "gateway_ref": None,
-            "raw_response": event
         }
 
-        if event['type'] == 'checkout.session.completed':
-            session = event['data']['object']
-            if session.get('payment_status') == 'paid':
-                result.update({
-                    "status": PaymentStatus.COMPLETED,
-                    "transaction_id": session.get('client_reference_id'),
-                    "gateway_ref": session.get('id')
-                })
+        if event.type == 'payment_intent.succeeded':
+            intent = event.data.object
+            metadata = intent.metadata
 
-        elif event['type'] == 'payment_intent.succeeded':
-            intent = event['data']['object']
             result.update({
                 "status": PaymentStatus.COMPLETED,
-                "transaction_id": intent['metadata'].get('transaction_id'),
-                "gateway_ref": intent.get('id')
+                "transaction_id": metadata.transaction_id,
+                "gateway_ref": intent.id
             })
 
-        elif event['type'] == 'payment_intent.payment_failed':
-            intent = event['data']['object']
+        elif event.type == 'payment_intent.payment_failed':
+            intent = event.data.object
+            metadata = intent.metadata
             result.update({
                 "status": PaymentStatus.FAILED,
-                "transaction_id": intent['metadata'].get('transaction_id'),
-                "gateway_ref": intent.get('id')
+                "transaction_id": metadata.transaction_id,
+                "gateway_ref": intent.id
             })
 
         return result
