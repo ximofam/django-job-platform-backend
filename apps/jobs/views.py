@@ -14,7 +14,7 @@ from apps.jobs.filters import JobFilter, JobSearchFilter, JobOrderingFilter, Job
 from apps.jobs.models import Category, Job, CandidateCV, Application
 from apps.jobs.serializers import CategorySerializer, JobDetailsSerializer, JobSimpleSerializer, JobWriteSerializer, \
     ApplicationDetailsSerializer, ApplicationCreateSerializer, ApplicationSimpleSerializer
-from apps.jobs.serializers.application_serializer import CandidateCVSerializer
+from apps.jobs.serializers.application_serializer import CandidateCVSerializer, ApplicationUpdateStatusSerializer
 from common import perms as common_perms
 
 
@@ -131,6 +131,8 @@ class ApplicationViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Retr
             return ApplicationSimpleSerializer
         elif self.action == 'retrieve':
             return ApplicationDetailsSerializer
+        elif self.action == 'update_status':
+            return ApplicationUpdateStatusSerializer
 
         return super().get_serializer_class()
 
@@ -138,7 +140,10 @@ class ApplicationViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Retr
         res = super().get_permissions()
 
         if self.action == 'create':
-            res += [common_perms.IsCandidate()]
+            return res + [common_perms.IsCandidate()]
+
+        if self.action == 'update_status':
+            return res + [common_perms.IsEmployer()]
 
         return res
 
@@ -156,3 +161,11 @@ class ApplicationViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Retr
             ).select_related('job')
 
         return Application.objects.none()
+
+    @action(methods=['PATCH'], url_path='status', detail=True)
+    def update_status(self, request, pk):
+        serializer = ApplicationUpdateStatusSerializer(self.get_object(), data=request.data)
+        serializer.is_valid(raise_exception=True)
+        application = serializer.save()
+        return Response(data=ApplicationSimpleSerializer(application, context={'request': request}).data,
+                        status=status.HTTP_200_OK)

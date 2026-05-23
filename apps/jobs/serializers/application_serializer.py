@@ -83,3 +83,24 @@ class ApplicationDetailsSerializer(serializers.ModelSerializer):
             res['job'] = JobSimpleSerializer(instance.job).data
 
         return res
+
+
+class ApplicationUpdateStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Application
+        fields = ['status']
+        extra_kwargs = {
+            'status': {'required': True}
+        }
+
+    def validate(self, attrs):
+        status = attrs['status']
+        if status == Application.Status.WITHDRAWN:
+            raise serializers.ValidationError("Ứng viên đã rút hồ sơ")
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        instance.status = validated_data.get('status', instance.status)
+        instance.save(update_fields=['status'])
+        return instance
