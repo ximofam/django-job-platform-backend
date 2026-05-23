@@ -84,23 +84,12 @@ class JobViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        package = request.data.get('package')
-
-        if package == "FREE":
-            return self._publish_free(job)
-
-        return self._publish_with_boost(self, request, job)
-
-    def _publish_free(self, job):
         expires_at = timezone.now() + timedelta(days=settings.JOB_EXPIRE_DAYS)
         job.status = Job.Status.PUBLISHED
         job.expired_at = expires_at
         job.save(update_fields=['status', 'expired_at'])
 
         return Response({'id': job.pk}, status=status.HTTP_200_OK)
-
-    def _publish_with_boost(self, request, job):
-        pass
 
 
 class CandidateCVViewSet(viewsets.ViewSet, generics.CreateAPIView):
