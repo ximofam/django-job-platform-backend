@@ -20,12 +20,12 @@ class Category(BaseModel):
         if self.parent:
             if self.parent.parent is not None:
                 raise ValidationError({
-                    'parent': 'Hệ thống chỉ cho phép tối đa 2 cấp (Cha -> Con). Danh mục bạn chọn làm cha hiện tại đang là một danh mục con.'
+                    'parent': 'Hệ thống chỉ cho phép tối đa 2 cấp (Cha -> Con).'
                 })
 
             if self.pk and self.children.exists():
                 raise ValidationError({
-                    'parent': 'Danh mục này đang có danh mục con bên trong, do đó không thể gán nó làm con của một danh mục khác.'
+                    'parent': 'Danh mục này đang có danh mục con bên trong'
                 })
 
     def save(self, *args, **kwargs):
