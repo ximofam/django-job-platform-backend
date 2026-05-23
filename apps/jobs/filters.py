@@ -95,6 +95,9 @@ class JobOrderingFilter(filters.OrderingFilter):
         base_ordering = list(user_ordering) if user_ordering else []
         seen_fields = {field.lstrip('-') for field in base_ordering}
 
+        if 'boost_score' not in seen_fields:
+            base_ordering.append('-boost_score')
+
         if search_term and 'score' not in seen_fields:
             base_ordering.append('-score')
 

@@ -84,10 +84,12 @@ class JobViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        expires_at = timezone.now() + timedelta(days=settings.JOB_EXPIRE_DAYS)
+        now = timezone.now()
+        expires_at = now + timedelta(days=settings.JOB_EXPIRE_DAYS)
         job.status = Job.Status.PUBLISHED
+        job.published_at = now
         job.expired_at = expires_at
-        job.save(update_fields=['status', 'expired_at'])
+        job.save()
 
         return Response({'id': job.pk}, status=status.HTTP_200_OK)
 

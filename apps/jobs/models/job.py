@@ -74,6 +74,7 @@ class Job(SoftDeleteModel):
     salary_max = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     salary_currency = models.CharField(max_length=10, default='VND')
 
+    boost_score = models.IntegerField(default=0)
     published_at = models.DateTimeField(null=True, blank=True)
     expired_at = models.DateTimeField(null=True, blank=True)
 
