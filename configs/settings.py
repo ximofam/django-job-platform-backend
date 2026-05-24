@@ -118,7 +118,8 @@ SELF_APPS = [
     'apps.users',
     'apps.jobs',
     'apps.payments',
-    'apps.locations'
+    'apps.locations',
+    'apps.notifications',
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + THIRD_PARTY_APPS + SELF_APPS
@@ -308,3 +309,7 @@ STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET")
 
 CACHE_TTL = 300
+
+GOTIFY_URL = f"http://localhost:{env.str("GOTIFY_PORT", "8082")}/"
+GOTIFY_USER = env.str("GOTIFY_USER")
+GOTIFY_PASSWORD = env.str("GOTIFY_PASSWORD")

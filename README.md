@@ -13,3 +13,9 @@ cách đóng docker
 ```
 docker compose down
 ```
+
+cách chạy celery
+
+```
+celery -A configs worker --loglevel=info --pool=solo
+```

@@ -15,6 +15,7 @@ from apps.jobs.models import Category, Job, CandidateCV, Application
 from apps.jobs.serializers import CategorySerializer, JobDetailsSerializer, JobSimpleSerializer, JobWriteSerializer, \
     ApplicationDetailsSerializer, ApplicationCreateSerializer, ApplicationSimpleSerializer
 from apps.jobs.serializers.application_serializer import CandidateCVSerializer, ApplicationUpdateStatusSerializer
+from apps.notifications.tasks import send_gotify_notification
 from common import perms as common_perms
 
 
@@ -164,8 +165,35 @@ class ApplicationViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Retr
 
     @action(methods=['PATCH'], url_path='status', detail=True)
     def update_status(self, request, pk):
-        serializer = ApplicationUpdateStatusSerializer(self.get_object(), data=request.data)
+        application = self.get_object()
+        old_status = getattr(application, 'status', None)
+
+        serializer = ApplicationUpdateStatusSerializer(application, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        application = serializer.save()
-        return Response(data=ApplicationSimpleSerializer(application, context={'request': request}).data,
-                        status=status.HTTP_200_OK)
+        updated_application = serializer.save()
+
+        new_status = updated_application.status
+
+        candidate_id = updated_application.candidate_profile.pk
+        job_title = updated_application.job.title if hasattr(updated_application, 'job') else "Vị trí bạn ứng tuyển"
+
+        notification_payload = {
+            "type": "APPLICATION_STATUS_UPDATED",
+            "application_id": updated_application.pk,
+            "old_status": old_status,
+            "new_status": new_status,
+            "job_title": job_title,
+            "action_url": f"/applications/{updated_application.pk}"
+        }
+
+        send_gotify_notification.delay(
+            user_id=candidate_id,
+            title="Cập nhật trạng thái hồ sơ",
+            message=notification_payload,
+            priority=6
+        )
+
+        return Response(
+            data=ApplicationSimpleSerializer(updated_application, context={'request': request}).data,
+            status=status.HTTP_200_OK
+        )

@@ -37,5 +37,6 @@ urlpatterns = [
     path('', include('apps.locations.urls')),
     path('', include('apps.users.urls')),
     path('', include('apps.jobs.urls')),
-    path('', include('apps.payments.urls'))
+    path('', include('apps.payments.urls')),
+    path('', include('apps.notifications.urls')),
 ]
