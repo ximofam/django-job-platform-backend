@@ -18,6 +18,7 @@ python manage.py seed_roles
 python manage.py seed_employers
 python manage.py seed_categories
 python manage.py seed_jobs
+python manage.py setup_gotify_account
 
 echo "Creating superuser..."
 python manage.py shell -c "

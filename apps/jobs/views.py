@@ -175,21 +175,17 @@ class ApplicationViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.Retr
         new_status = updated_application.status
 
         candidate_id = updated_application.candidate_profile.pk
-        job_title = updated_application.job.title if hasattr(updated_application, 'job') else "Vị trí bạn ứng tuyển"
+        job = updated_application.job
+        job_title = job.title if hasattr(updated_application, 'job') else "Vị trí bạn ứng tuyển"
+        company_name = job.company.name
 
-        notification_payload = {
-            "type": "APPLICATION_STATUS_UPDATED",
-            "application_id": updated_application.pk,
-            "old_status": old_status,
-            "new_status": new_status,
-            "job_title": job_title,
-            "action_url": f"/applications/{updated_application.pk}"
-        }
+        message = (f"Hồ sơ ứng tuyển cho vị trí {job_title} của công ty {company_name} của bạn đã được duyệt.\n"
+                   f"Từ {old_status} -> {new_status} :V")
 
         send_gotify_notification.delay(
             user_id=candidate_id,
             title="Cập nhật trạng thái hồ sơ",
-            message=notification_payload,
+            message=message,
             priority=6
         )
 
