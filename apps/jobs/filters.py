@@ -13,20 +13,15 @@ from rest_framework import filters
 
 class JobFilter(django_filters.FilterSet):
     category = django_filters.NumberFilter(field_name='category__id')
-
     salary_min = django_filters.NumberFilter(field_name='salary_min', lookup_expr='gte')
     salary_max = django_filters.NumberFilter(field_name='salary_max', lookup_expr='lte')
     salary_currency = django_filters.CharFilter(field_name='salary_currency', lookup_expr='iexact')
-
     employment_type = django_filters.MultipleChoiceFilter(choices=Job.EmploymentType.choices,
                                                           field_name='employment_type')
     experience_level = django_filters.MultipleChoiceFilter(choices=Job.ExperienceLevel.choices,
                                                            field_name='experience_level')
-
     company_name = django_filters.CharFilter(field_name='company__name', lookup_expr='icontains')
-
-    district = django_filters.CharFilter(field_name='address__district', lookup_expr='icontains')
-    city = django_filters.CharFilter(field_name='address__city', lookup_expr='icontains')
+    district = django_filters.NumberFilter(field_name='address__district_id', lookup_expr='exact')
 
     class Meta:
         model = Job
@@ -35,7 +30,7 @@ class JobFilter(django_filters.FilterSet):
             'salary_min', 'salary_max', 'salary_currency',
             'employment_type', 'experience_level',
             'company_name',
-            'district', 'city',
+            'district',
         ]
 
 
@@ -51,13 +46,20 @@ class JobSearchFilter(filters.SearchFilter):
         if not search_term:
             return queryset
 
-        fts_query = SearchQuery(search_term, config='simple')
-        fts_queryset = self._build_fts_queryset(queryset, fts_query)
+        fts_query = SearchQuery(search_term, config='simple', search_type='websearch')
+        # fts_queryset = self._build_fts_queryset(queryset, fts_query)
+        #
+        # if fts_queryset[:MIN_FTS_RESULTS].count() >= MIN_FTS_RESULTS:
+        #     return fts_queryset
+        #
+        # return self._build_fuzzy_queryset(queryset, search_term, fts_query)
 
-        if fts_queryset[:MIN_FTS_RESULTS].count() >= MIN_FTS_RESULTS:
-            return fts_queryset
-
-        return self._build_fuzzy_queryset(queryset, search_term, fts_query)
+        return (
+            queryset
+            .filter(search_vector=fts_query)
+            .annotate(score=SearchRank(F('search_vector'), fts_query))
+            .order_by('-score')
+        )
 
     def _build_fts_queryset(self, queryset, fts_query):
         return (
