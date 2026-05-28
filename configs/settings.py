@@ -103,6 +103,7 @@ DEFAULT_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.postgres',
+    'django.contrib.humanize'
 ]
 
 THIRD_PARTY_APPS = [
@@ -121,6 +122,7 @@ SELF_APPS = [
     'apps.payments',
     'apps.locations',
     'apps.notifications',
+    'apps.reports'
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + THIRD_PARTY_APPS + SELF_APPS

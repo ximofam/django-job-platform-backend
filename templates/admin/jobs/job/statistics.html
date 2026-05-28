@@ -1,0 +1,445 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Thống kê tuyển dụng{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --blue:   #2563eb;
+    --green:  #16a34a;
+    --amber:  #d97706;
+    --red:    #dc2626;
+    --purple: #7c3aed;
+    --gray:   #6b7280;
+    --slate:  #475569;
+    --card-bg: #ffffff;
+    --border:  #e2e8f0;
+    --radius:  10px;
+  }
+
+  #stats-wrap {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 24px;
+    background: #f8fafc;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .stats-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .stats-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+  .period-filter {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .period-filter a {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--slate);
+    transition: all .15s;
+  }
+  .period-filter a.active,
+  .period-filter a:hover {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+
+  /* ── Section title ── */
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--blue);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── KPI cards ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+  .kpi-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,.10);
+  }
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .kpi-label {
+    font-size: 12px;
+    color: var(--gray);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .kpi-card.blue   .kpi-value { color: var(--blue); }
+  .kpi-card.green  .kpi-value { color: var(--green); }
+  .kpi-card.amber  .kpi-value { color: var(--amber); }
+  .kpi-card.red    .kpi-value { color: var(--red); }
+  .kpi-card.purple .kpi-value { color: var(--purple); }
+  .kpi-card.gray   .kpi-value { color: var(--gray); }
+  .kpi-card.slate  .kpi-value { color: var(--slate); }
+
+  /* ── Chart grid ── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .chart-grid.wide { grid-template-columns: 2fr 1fr; }
+  @media (max-width: 900px) {
+    .chart-grid, .chart-grid.wide { grid-template-columns: 1fr; }
+  }
+  .chart-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .chart-card h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--slate);
+    margin: 0 0 16px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .chart-card canvas { width: 100% !important; }
+
+  /* ── Top jobs table ── */
+  .top-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .top-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: #f1f5f9;
+    color: var(--slate);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .top-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    color: #1e293b;
+    vertical-align: middle;
+  }
+  .top-table tr:last-child td { border-bottom: none; }
+  .top-table tr:hover td { background: #f8fafc; }
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    background: #e2e8f0;
+    color: var(--slate);
+  }
+  .rank-badge.gold   { background: #fef3c7; color: #b45309; }
+  .rank-badge.silver { background: #f1f5f9; color: #475569; }
+  .rank-badge.bronze { background: #fef9ee; color: #92400e; }
+  .bar-mini {
+    display: inline-block;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--blue);
+    opacity: .75;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="stats-wrap">
+
+  <!-- Header -->
+  <div class="stats-header">
+    <h1>Thống kê tuyển dụng</h1>
+    <div class="period-filter">
+      <a href="?days=7" {% if days == 7 %}class="active" {% endif %}>7 ngày</a>
+      <a href="?days=30" {% if days == 30 %}class="active" {% endif %}>30 ngày</a>
+      <a href="?days=90" {% if days == 90 %}class="active" {% endif %}>3 tháng</a>
+      <a href="?days=180" {% if days == 180 %}class="active" {% endif %}>6 tháng</a>
+      <a href="?days=365" {% if days == 365 %}class="active" {% endif %}>1 năm</a>
+    </div>
+  </div>
+
+  <!-- ─── Tin tuyển dụng ─── -->
+  <div class="section-title">Tin tuyển dụng</div>
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <span class="kpi-value">{{ job_stats.total }}</span>
+      <span class="kpi-label">Tổng tin đăng</span>
+    </div>
+    <div class="kpi-card green">
+      <span class="kpi-value">{{ job_stats.published }}</span>
+      <span class="kpi-label">Đang hiển thị</span>
+    </div>
+    <div class="kpi-card amber">
+      <span class="kpi-value">{{ job_stats.draft }}</span>
+      <span class="kpi-label">Bản nháp</span>
+    </div>
+    <div class="kpi-card red">
+      <span class="kpi-value">{{ job_stats.expired }}</span>
+      <span class="kpi-label">Đã hết hạn</span>
+    </div>
+    <div class="kpi-card gray">
+      <span class="kpi-value">{{ job_stats.closed }}</span>
+      <span class="kpi-label">Đã đóng</span>
+    </div>
+  </div>
+
+  <div class="chart-grid wide" style="margin-top:18px">
+    <div class="chart-card">
+      <h3>Tin đăng theo tháng (12 tháng gần nhất)</h3>
+      <canvas id="jobMonthlyChart" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Phân bổ theo trạng thái</h3>
+      <canvas id="jobStatusChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- ─── Ứng viên / Đơn ứng tuyển ─── -->
+  <div class="section-title" style="margin-top:36px">👤 Ứng viên & Đơn ứng tuyển</div>
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <span class="kpi-value">{{ app_stats.total }}</span>
+      <span class="kpi-label">Tổng đơn nộp</span>
+    </div>
+    <div class="kpi-card purple">
+      <span class="kpi-value">{{ app_stats.unique_candidates }}</span>
+      <span class="kpi-label">Ứng viên duy nhất</span>
+    </div>
+    <div class="kpi-card amber">
+      <span class="kpi-value">{{ app_stats.pending }}</span>
+      <span class="kpi-label">Chờ xem xét</span>
+    </div>
+    <div class="kpi-card blue">
+      <span class="kpi-value">{{ app_stats.reviewing }}</span>
+      <span class="kpi-label">Đang xem xét</span>
+    </div>
+    <div class="kpi-card purple">
+      <span class="kpi-value">{{ app_stats.interview }}</span>
+      <span class="kpi-label">Phỏng vấn</span>
+    </div>
+    <div class="kpi-card green">
+      <span class="kpi-value">{{ app_stats.accepted }}</span>
+      <span class="kpi-label">Chấp nhận</span>
+    </div>
+    <div class="kpi-card red">
+      <span class="kpi-value">{{ app_stats.rejected }}</span>
+      <span class="kpi-label">Từ chối</span>
+    </div>
+    <div class="kpi-card gray">
+      <span class="kpi-value">{{ app_stats.withdrawn }}</span>
+      <span class="kpi-label">Rút hồ sơ</span>
+    </div>
+  </div>
+
+  <div class="chart-grid" style="margin-top:18px">
+    <div class="chart-card">
+      <h3>Đơn ứng tuyển theo tháng (12 tháng)</h3>
+      <canvas id="appMonthlyChart" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Phân bổ theo trạng thái</h3>
+      <canvas id="appStatusChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-grid" style="margin-top:18px">
+    <div class="chart-card" style="grid-column: 1 / -1">
+      <h3>Đơn ứng tuyển 30 ngày gần nhất (theo ngày)</h3>
+      <canvas id="appDailyChart" height="120"></canvas>
+    </div>
+  </div>
+
+  <!-- Top jobs -->
+  {% if app_stats.top_jobs %}
+  <div class="section-title" style="margin-top:36px">🏆 Top tin có nhiều ứng viên nhất</div>
+  <div class="chart-card">
+    {% with max_n=app_stats.top_jobs.0.1 %}
+    <table class="top-table">
+      <thead>
+      <tr>
+        <th style="width:40px">#</th>
+        <th>Tên tin tuyển dụng</th>
+        <th style="width:120px;text-align:right">Số đơn</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for title, n in app_stats.top_jobs %}
+      <tr>
+        <td>
+            <span class="rank-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+              {{ forloop.counter }}
+            </span>
+        </td>
+        <td>
+          {{ title }}
+          <span class="bar-mini" style="width:{{ n }}px;max-width:200px"></span>
+        </td>
+        <td style="text-align:right;font-weight:700;color:var(--blue)">{{ n }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endwith %}
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  const COLORS = {
+    blue:   '#2563eb', green:  '#16a34a', amber:  '#d97706',
+    red:    '#dc2626', purple: '#7c3aed', gray:   '#6b7280',
+    teal:   '#0d9488', orange: '#ea580c',
+  };
+
+  const defaultLine = (label, labels, data, color) => new Chart(
+    document.getElementById(label),
+    { type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Số lượng',
+          data,
+          backgroundColor: color + '33',
+          borderColor: color,
+          borderWidth: 2,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } } },
+        }
+      }
+    }
+  );
+
+  const defaultDonut = (id, labels, data, colors) => new Chart(
+    document.getElementById(id),
+    { type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2 }] },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } }
+        },
+        cutout: '65%',
+      }
+    }
+  );
+
+  // Job monthly bar
+  defaultLine(
+    'jobMonthlyChart',
+    {{ job_monthly_labels|safe }},
+    {{ job_monthly_data|safe }},
+    COLORS.blue
+  );
+
+  // Job status donut
+  defaultDonut(
+    'jobStatusChart',
+    {{ job_status_labels|safe }},
+    {{ job_status_data|safe }},
+    [COLORS.green, COLORS.amber, COLORS.red, COLORS.gray]
+  );
+
+  // Application monthly bar
+  defaultLine(
+    'appMonthlyChart',
+    {{ app_monthly_labels|safe }},
+    {{ app_monthly_data|safe }},
+    COLORS.purple
+  );
+
+  // Application status donut
+  defaultDonut(
+    'appStatusChart',
+    {{ app_status_labels|safe }},
+    {{ app_status_data|safe }},
+    [COLORS.amber, COLORS.blue, COLORS.purple, COLORS.green, COLORS.red, COLORS.gray]
+  );
+
+  // Daily bar (line style)
+  new Chart(document.getElementById('appDailyChart'), {
+    type: 'line',
+    data: {
+      labels: {{ app_daily_labels|safe }},
+      datasets: [{
+        label: 'Đơn nộp',
+        data: {{ app_daily_data|safe }},
+        borderColor: COLORS.purple,
+        backgroundColor: COLORS.purple + '18',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } } },
+      }
+    }
+  });
+</script>
+{% endblock %}

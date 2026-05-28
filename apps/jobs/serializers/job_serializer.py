@@ -177,3 +177,11 @@ class JobWriteSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class JobStatisticSimpleSerializer(serializers.ModelSerializer):
+    application_count = serializers.IntegerField(source='annotated_app_count', read_only=True)
+
+    class Meta:
+        model = Job
+        fields = ['id', 'title', 'status', 'published_at', 'expired_at', 'application_count']

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.jobs.models import CandidateCV, Application
-from apps.jobs.serializers import JobDetailsSerializer, JobSimpleSerializer
+from apps.jobs.serializers import JobSimpleSerializer
 from apps.users.serializers import UserDetailSerializer
 
 

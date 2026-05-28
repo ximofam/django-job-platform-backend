@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, viewsets, permissions, status, parsers
@@ -15,6 +15,7 @@ from apps.jobs.models import Category, Job, CandidateCV, Application
 from apps.jobs.serializers import CategorySerializer, JobDetailsSerializer, JobSimpleSerializer, JobWriteSerializer, \
     ApplicationDetailsSerializer, ApplicationCreateSerializer, ApplicationSimpleSerializer
 from apps.jobs.serializers.application_serializer import CandidateCVSerializer, ApplicationUpdateStatusSerializer
+from apps.jobs.serializers.job_serializer import JobStatisticSimpleSerializer
 from apps.notifications.tasks import send_gotify_notification
 from common import perms as common_perms
 
@@ -50,6 +51,12 @@ class JobViewSet(viewsets.ModelViewSet):
                 )
             return queryset.filter(status=Job.Status.PUBLISHED)
 
+        if self.action == 'my_jobs':
+            user = self.request.user
+            return Job.objects.filter(company_id=user.employer_profile.company_id).annotate(
+                annotated_app_count=Count('applications')
+            )
+
         return queryset
 
     def get_serializer_class(self):
@@ -59,6 +66,8 @@ class JobViewSet(viewsets.ModelViewSet):
             return JobSimpleSerializer
         if self.action in ['create', 'update', 'partial_update']:
             return JobWriteSerializer
+        if self.action == 'my_jobs':
+            return JobStatisticSimpleSerializer
         return super().get_serializer_class()
 
     def get_permissions(self):
@@ -68,6 +77,8 @@ class JobViewSet(viewsets.ModelViewSet):
             res += [job_perms.CanPostJob()]
         elif self.action in ['job_publish', 'update', 'partial_update', 'destroy']:
             res += [common_perms.IsEmployer(), job_perms.IsJobOwner()]
+        elif self.action in ['my_jobs', 'get_applications']:
+            res += [permissions.IsAuthenticated(), common_perms.IsEmployer()]
 
         return res
 
@@ -93,6 +104,16 @@ class JobViewSet(viewsets.ModelViewSet):
         job.save()
 
         return Response({'id': job.pk}, status=status.HTTP_200_OK)
+
+    @action(methods=['GET'], url_path='my-jobs', detail=False)
+    def my_jobs(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(methods=['GET'], url_path='applications', detail=True)
+    def get_applications(self, request, pk):
+        pass
 
 
 class CandidateCVViewSet(viewsets.ViewSet, generics.CreateAPIView):
