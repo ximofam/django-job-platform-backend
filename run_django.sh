@@ -8,9 +8,15 @@ if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
 fi
 
+# 2. XÓA TOÀN BỘ DỮ LIỆU CŨ (FLUSH)
+echo "Wiping out old database data..."
+python manage.py flush --no-input
+
+# 3. CHẠY MIGRATIONS ĐỂ ĐẢM BẢO CẤU TRÚC DB ĐƯỢC CẬP NHẬT
 echo "Running migrations..."
 python manage.py migrate --noinput
 
+# 4. CHẠY SEED DATA MỚI
 echo "Seeding data..."
 python manage.py seed_countries
 python manage.py seed_location
@@ -20,6 +26,7 @@ python manage.py seed_categories
 python manage.py seed_jobs
 python manage.py setup_gotify_account
 
+# 5. TẠO LẠI SUPERUSER (Vì lệnh flush đã xóa cả user)
 echo "Creating superuser..."
 python manage.py shell -c "
 from django.contrib.auth import get_user_model
@@ -36,7 +43,6 @@ if not User.objects.filter(username=username).exists():
 else:
     print(f'Superuser \"{username}\" already exists, skipping.')
 "
-
 
 #echo "Collecting static files..."
 #python manage.py collectstatic --noinput

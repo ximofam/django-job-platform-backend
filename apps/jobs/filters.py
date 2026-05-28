@@ -1,6 +1,7 @@
 import django_filters
 from django.conf import settings
 from rest_framework.pagination import CursorPagination
+from unidecode import unidecode
 
 from .models import Job
 from django.contrib.postgres.search import (
@@ -9,6 +10,8 @@ from django.contrib.postgres.search import (
 from django.db.models import F, FloatField, Case, When, Value, Q
 from django.db.models.functions import Greatest
 from rest_framework import filters
+
+from .utils import remove_vietnamese_accents
 
 
 class JobFilter(django_filters.FilterSet):
@@ -46,7 +49,8 @@ class JobSearchFilter(filters.SearchFilter):
         if not search_term:
             return queryset
 
-        fts_query = SearchQuery(search_term, config='simple', search_type='websearch')
+        search_term_normalized = remove_vietnamese_accents(search_term)
+        fts_query = SearchQuery(search_term_normalized, config='simple', search_type='websearch')
         # fts_queryset = self._build_fts_queryset(queryset, fts_query)
         #
         # if fts_queryset[:MIN_FTS_RESULTS].count() >= MIN_FTS_RESULTS:

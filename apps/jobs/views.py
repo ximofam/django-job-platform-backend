@@ -86,7 +86,7 @@ class JobViewSet(viewsets.ModelViewSet):
             )
 
         now = timezone.now()
-        expires_at = now + timedelta(days=settings.JOB_EXPIRE_DAYS)
+        expires_at = now + timedelta(seconds=settings.JOB_EXPIRE_SECONDS)
         job.status = Job.Status.PUBLISHED
         job.published_at = now
         job.expired_at = expires_at

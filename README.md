@@ -18,4 +18,5 @@ cách chạy celery
 
 ```
 celery -A configs worker --loglevel=info --pool=solo
+celery -A configs beat --loglevel=info
 ```

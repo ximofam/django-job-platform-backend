@@ -112,6 +112,7 @@ THIRD_PARTY_APPS = [
     'corsheaders',
     'cloudinary_storage',
     'cloudinary',
+    'django_celery_beat',
 ]
 
 SELF_APPS = [
@@ -292,7 +293,8 @@ CLIENT_SECRET = env.str("CLIENT_SECRET")
 
 TOKEN_CACHING_SECONDS = env.int("TOKEN_CACHING_SECONDS", 600)
 
-JOB_EXPIRE_DAYS = env.int("JOB_EXPIRE_DAYS", 10)
+JOB_EXPIRE_SECONDS = env.int("JOB_EXPIRE_SECONDS", 120)
+JOB_DRAFT_EXPIRE_SECONDS = JOB_EXPIRE_SECONDS / 2
 JOB_PAGE_SIZE = env.int("JOB_PAGE_SIZE", 20)
 JOB_MAX_PAGE_SIZE = env.int("JOB_MAX_PAGE_SIZE", 100)
 
@@ -303,6 +305,7 @@ CELERY_BROKER_URL = env.str("CELERY_BROKER_URL")
 CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND")
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY")
 STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY")

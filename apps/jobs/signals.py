@@ -1,23 +1,40 @@
-from django.db.models import Value
+from django.conf import settings
+from django.db.models import Value, Func, F
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.postgres.search import SearchVector
 
 from .models import Job, Application
+from .tasks import expire_single_job
+from .utils import remove_vietnamese_accents
 from ..notifications.tasks import send_gotify_notification
 
 
 @receiver(post_save, sender=Job)
 def update_job_search_vector(sender, instance, **kwargs):
     company_name = instance.company.name if instance.company else ''
+
     Job.objects.filter(pk=instance.pk).update(
-        search_vector=(
-                SearchVector('title', weight='A', config='simple') +
-                SearchVector(Value(company_name), weight='A', config='simple') +
-                SearchVector('description', weight='B', config='simple') +
-                SearchVector('requirements', weight='C', config='simple')
-        )
+        search_vector=(SearchVector(Value(remove_vietnamese_accents(instance.title)),
+                                    weight='A', config='simple') +
+                       SearchVector(Value(remove_vietnamese_accents(company_name)),
+                                    weight='A', config='simple') +
+                       SearchVector(Value(remove_vietnamese_accents(instance.description)),
+                                    weight='B', config='simple') +
+                       SearchVector(Value(remove_vietnamese_accents(instance.requirements or '')),
+                                    weight='C', config='simple')
+                       )
     )
+
+
+@receiver(post_save, sender=Job)
+def schedule_job_expiry(sender, instance, created, **kwargs):
+    if created:
+        expire_single_job.apply_async(
+            args=[instance.pk],
+            countdown=settings.JOB_DRAFT_EXPIRE_SECONDS,
+            task_id=f"expire-job-{instance.pk}"
+        )
 
 
 @receiver(post_save, sender=Application)
