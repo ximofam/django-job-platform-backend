@@ -1,4 +1,5 @@
 import cloudinary.uploader
+from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status, permissions
@@ -6,7 +7,7 @@ from rest_framework import status, permissions
 from rest_framework.views import APIView
 
 import json
-from django.http import QueryDict
+from django.http import QueryDict, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider.views.base import TokenView
@@ -15,16 +16,20 @@ from oauth2_provider.views.base import TokenView
 @method_decorator(csrf_exempt, name="dispatch")
 class CustomTokenView(TokenView):
     def post(self, request, *args, **kwargs):
-        if request.content_type == 'application/json':
+        if request.content_type == "application/json":
             try:
                 data = json.loads(request.body)
-                q_data = QueryDict('', mutable=True)
-                for key, value in data.items():
-                    q_data[key] = value
-
-                request.POST = q_data
             except json.JSONDecodeError:
-                pass
+                return JsonResponse({"error": "invalid_json"}, status=400)
+        else:
+            data = request.POST.copy()
+
+        data["client_id"] = settings.CLIENT_ID
+        data["client_secret"] = settings.CLIENT_SECRET
+
+        q_data = QueryDict("", mutable=True)
+        q_data.update(data)
+        request.POST = q_data
 
         return super().post(request, *args, **kwargs)
 

@@ -26,23 +26,15 @@ python manage.py seed_categories
 python manage.py seed_jobs
 python manage.py setup_gotify_account
 
-# 5. TẠO LẠI SUPERUSER (Vì lệnh flush đã xóa cả user)
+echo "========================================"
 echo "Creating superuser..."
-python manage.py shell -c "
-from django.contrib.auth import get_user_model
-User = get_user_model()
+echo "========================================"
+python manage.py createsuperuser --noinput || echo "Superuser đã tồn tại hoặc thiếu biến môi trường, bỏ qua tạo mới."
 
-# Các biến này giờ sẽ lấy được giá trị từ file .env nhờ lệnh export ở trên
-username = '${DJANGO_SUPERUSER_USERNAME:-admin}'
-email = '${DJANGO_SUPERUSER_EMAIL:-admin@example.com}'
-password = '${DJANGO_SUPERUSER_PASSWORD:-admin123}'
-
-if not User.objects.filter(username=username).exists():
-    User.objects.create_superuser(username=username, email=email, password=password)
-    print(f'Superuser \"{username}\" created.')
-else:
-    print(f'Superuser \"{username}\" already exists, skipping.')
-"
+echo "========================================"
+echo "Setting up OAuth Application..."
+echo "========================================"
+python manage.py setup_oauth
 
 #echo "Collecting static files..."
 #python manage.py collectstatic --noinput
