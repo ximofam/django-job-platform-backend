@@ -82,6 +82,7 @@ class Job(SoftDeleteModel):
         indexes = [
             GinIndex(fields=['search_vector']),
             GinIndex(fields=['title'], name='job_title_trgm_idx', opclasses=['gin_trgm_ops']),
+            models.Index(fields=['status', 'expired_at'])
         ]
 
 # class JobView(BaseModel):

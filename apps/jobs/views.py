@@ -55,7 +55,7 @@ class JobViewSet(viewsets.ModelViewSet):
             user = self.request.user
             return Job.objects.filter(company_id=user.employer_profile.company_id).annotate(
                 annotated_app_count=Count('applications')
-            )
+            ).order_by('-pk')
 
         return queryset
 

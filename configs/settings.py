@@ -295,7 +295,7 @@ CLIENT_SECRET = env.str("CLIENT_SECRET")
 
 TOKEN_CACHING_SECONDS = env.int("TOKEN_CACHING_SECONDS", 600)
 
-JOB_EXPIRE_SECONDS = env.int("JOB_EXPIRE_SECONDS", 30)
+JOB_EXPIRE_SECONDS = env.int("JOB_EXPIRE_SECONDS", 10)
 JOB_DRAFT_EXPIRE_SECONDS = JOB_EXPIRE_SECONDS / 2
 JOB_PAGE_SIZE = env.int("JOB_PAGE_SIZE", 20)
 JOB_MAX_PAGE_SIZE = env.int("JOB_MAX_PAGE_SIZE", 100)
@@ -318,3 +318,14 @@ CACHE_TTL = 300
 GOTIFY_URL = f"http://localhost:{env.str("GOTIFY_PORT", "8082")}/"
 GOTIFY_USER = env.str("GOTIFY_USER")
 GOTIFY_PASSWORD = env.str("GOTIFY_PASSWORD")
+
+from datetime import timedelta
+
+CELERY_BEAT_SCHEDULE = {
+    'expire-jobs': {
+        'task': 'apps.jobs.tasks.expire_jobs',
+        'schedule': timedelta(seconds=5),
+    },
+}
+
+CELERY_TIMEZONE = 'Asia/Ho_Chi_Minh'

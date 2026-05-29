@@ -1,4 +1,5 @@
 from celery import shared_task
+from django.db import transaction
 from django.utils import timezone
 
 from apps.jobs.models import Job
@@ -63,3 +64,47 @@ def _do_expire_job(job_id: int):
 
     except Job.DoesNotExist:
         logger.warning(f"Job {job_id} không còn ở trạng thái PUBLISHED.")
+
+
+@shared_task(bind=True, max_retries=3)
+def expire_jobs(self):
+    try:
+        now = timezone.now()
+
+        with transaction.atomic():
+            expired_jobs = Job.objects.filter(
+                status=Job.Status.PUBLISHED,
+                expired_at__lt=now,
+            ).select_related('company')
+
+            job_ids = list(expired_jobs.values_list('id', flat=True))
+
+            expired_jobs.update(status=Job.Status.EXPIRED)
+
+        for job_id in job_ids:
+            notify_expired_job.delay(job_id)
+
+        logger.info(f"[expire_jobs] Expired {len(job_ids)} jobs at {now}")
+        return {"expired_count": len(job_ids)}
+
+    except Exception as exc:
+        logger.error(f"[expire_jobs] Failed: {exc}")
+        raise self.retry(exc=exc, countdown=60)
+
+
+@shared_task(bind=True, max_retries=3)
+def notify_expired_job(self, job_id):
+    try:
+        job = Job.objects.get(id=job_id)
+
+        employer = EmployerProfile.objects.filter(company_id=job.company_id).first()
+        if employer:
+            title = "Có công việc đã hết hạn!!!!"
+            message = f"Công việc {job.title} đã hết hạn."
+            send_gotify_notification.delay(employer.pk, title, message)
+            logger.info(f"[notify_expired_job] Sent notification for job {job_id}")
+
+    except Job.DoesNotExist:
+        logger.warning(f"[notify_expired_job] Job {job_id} not found")
+    except Exception as exc:
+        raise self.retry(exc=exc, countdown=30)

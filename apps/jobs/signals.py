@@ -27,14 +27,14 @@ def update_job_search_vector(sender, instance, **kwargs):
     )
 
 
-@receiver(post_save, sender=Job)
-def schedule_job_expiry(sender, instance, created, **kwargs):
-    if created:
-        expire_single_job.apply_async(
-            args=[instance.pk],
-            countdown=settings.JOB_DRAFT_EXPIRE_SECONDS,
-            task_id=f"expire-job-{instance.pk}"
-        )
+# @receiver(post_save, sender=Job)
+# def schedule_job_expiry(sender, instance, created, **kwargs):
+#     if created:
+#         expire_single_job.apply_async(
+#             args=[instance.pk],
+#             countdown=settings.JOB_DRAFT_EXPIRE_SECONDS,
+#             task_id=f"expire-job-{instance.pk}"
+#         )
 
 
 @receiver(post_save, sender=Application)
