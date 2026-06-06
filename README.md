@@ -1,5 +1,7 @@
 # django-job-platform-backend
 
+Frontend here: https://github.com/ximofam/react-native-job-platform.git
+
 using django, djangorestframework to build api
 
 cách chạy docker
